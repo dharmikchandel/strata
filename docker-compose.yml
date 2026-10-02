@@ -1,23 +1,59 @@
-# Local object storage for development. Strata talks to it over the S3 API,
-# the same way it talks to a real S3/R2 bucket in production.
+# Local development stack: the Strata server plus the S3-compatible object
+# store it writes to. Strata talks to it over the S3 API, exactly as it would
+# talk to a real S3/R2 bucket in production.
 #
-#   docker compose up -d       start it
-#   docker compose down        stop it (data is kept in the named volume)
-#   docker compose down -v     stop it and delete the data
+#   docker compose up -d --build   build and start everything
+#   docker compose logs -f strata  watch the server
+#   docker compose down            stop (data is kept in the named volumes)
+#   docker compose down -v         stop and DELETE all data
 #
-# S3 API:  http://localhost:9000    Web console: http://localhost:9001
-# The credentials below are for local development only.
+# Strata gRPC: localhost:7070   S3 API: localhost:9000   S3 console: localhost:9001
+# Everything is published on the host's loopback only: the credentials below
+# are for local development, and Strata has no TLS or authentication yet.
+#
+# IMPORTANT: the two volumes belong together. strata-data holds the manifest
+# (the record of which segments exist) and rustfs-data holds the segments.
+# Deleting only one of them leaves Strata unable to use the other; it will
+# refuse to start rather than risk deleting data (see "adopt-bucket").
 services:
   rustfs:
     image: rustfs/rustfs:1.0.0 # pinned on purpose: no surprise upgrades
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:${RUSTFS_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
     environment:
       RUSTFS_ACCESS_KEY: ${STRATA_S3_ACCESS_KEY:-strata-dev}
       RUSTFS_SECRET_KEY: ${STRATA_S3_SECRET_KEY:-strata-dev-secret}
     volumes:
       - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  strata:
+    build: .
+    depends_on:
+      rustfs:
+        condition: service_healthy # don't start until the object store answers
+    ports:
+      - "127.0.0.1:${STRATA_PORT:-7070}:7070"
+    environment:
+      STRATA_S3_ENDPOINT: http://rustfs:9000
+      STRATA_S3_BUCKET: strata
+      STRATA_S3_ACCESS_KEY: ${STRATA_S3_ACCESS_KEY:-strata-dev}
+      STRATA_S3_SECRET_KEY: ${STRATA_S3_SECRET_KEY:-strata-dev-secret}
+      STRATA_S3_CREATE_BUCKET: "true" # development convenience; leave off in production
+    volumes:
+      - strata-data:/data
+    # On shutdown Strata flushes buffered logs to storage, which can take up to
+    # 30 seconds. Docker's default of 10 seconds would kill it mid-flush and
+    # lose them, so allow longer.
+    stop_grace_period: 40s
+    restart: unless-stopped
 
 volumes:
   rustfs-data:
+  strata-data:

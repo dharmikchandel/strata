@@ -38,6 +38,10 @@ func run() error {
 		return err
 	}
 
+	if cfg.Healthcheck {
+		return app.CheckHealth(context.Background(), cfg.ListenAddr, 3*time.Second)
+	}
+
 	// SIGINT (Ctrl-C) and SIGTERM (what Docker and Kubernetes send) start a
 	// graceful shutdown. After the first signal, stop() restores the default
 	// behaviour, so a second Ctrl-C kills the process immediately.

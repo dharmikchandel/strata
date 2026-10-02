@@ -17,7 +17,9 @@ package manifest
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -142,6 +144,9 @@ var migrations = []string{
 	// skip segments without any storage reads. NULL for rows written before
 	// this migration, which are simply never skipped by the bloom check.
 	`ALTER TABLE segments ADD COLUMN bloom BLOB;`,
+	// 3: a small key/value table. It holds the manifest's identity (see
+	// InstanceID), which pairs a manifest file with the bucket it describes.
+	`CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
 }
 
 func migrate(ctx context.Context, db *sql.DB) error {
@@ -273,6 +278,50 @@ func (m *Manifest) List(ctx context.Context, status Status) ([]Segment, error) {
 		return nil, fmt.Errorf("manifest: list: %w", err)
 	}
 	return out, nil
+}
+
+// InstanceID returns this manifest's identity: a random ID created the first
+// time it is asked for and stored in the manifest file, so it lives and dies
+// with the file. created reports whether this call made it.
+//
+// The server also writes the ID into the bucket. If the two ever disagree, the
+// manifest file and the bucket don't belong together (the manifest was lost or
+// replaced), and the server must not touch the data. See app.checkIdentity.
+func (m *Manifest) InstanceID(ctx context.Context) (id string, created bool, err error) {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("manifest: begin: %w", err)
+	}
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx, `SELECT value FROM meta WHERE key = 'instance_id'`).Scan(&id)
+	if err == nil {
+		return id, false, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", false, fmt.Errorf("manifest: read instance id: %w", err)
+	}
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return "", false, err
+	}
+	id = hex.EncodeToString(raw[:])
+	if _, err := tx.ExecContext(ctx, `INSERT INTO meta (key, value) VALUES ('instance_id', ?)`, id); err != nil {
+		return "", false, fmt.Errorf("manifest: store instance id: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return "", false, fmt.Errorf("manifest: commit instance id: %w", err)
+	}
+	return id, true, nil
+}
+
+// CountAll returns the number of segment rows of any status. A manifest with
+// rows has history; one without is brand new (or was lost and recreated).
+func (m *Manifest) CountAll(ctx context.Context) (int, error) {
+	var n int
+	if err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM segments`).Scan(&n); err != nil {
+		return 0, fmt.Errorf("manifest: count: %w", err)
+	}
+	return n, nil
 }
 
 // CountActive returns how many active segments exist.

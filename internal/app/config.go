@@ -32,6 +32,10 @@ type Config struct {
 	// for local development; off by default because silently creating a bucket
 	// in production would hide a misconfigured name.
 	CreateBucket bool
+	// AdoptBucket lets this manifest take over a bucket that belongs to a
+	// different manifest (see checkIdentity). Dangerous: the segments already
+	// in the bucket become orphans and are eventually deleted.
+	AdoptBucket bool
 
 	BufferBytes int
 	BufferAge   time.Duration
@@ -48,6 +52,10 @@ type Config struct {
 	ShutdownGrace time.Duration
 
 	LogLevel string
+
+	// Healthcheck makes the binary check a running server instead of starting
+	// one (see CheckHealth).
+	Healthcheck bool
 
 	// Test hooks: if set, Storage is used instead of connecting to S3, and
 	// Logger instead of one built from LogLevel.
@@ -128,6 +136,7 @@ func ParseConfig(args []string, getenv func(string) string) (Config, error) {
 	// It is read from the environment after parsing instead.
 	fs.StringVar(&c.S3.SecretKey, "s3-secret-key", "", "S3 secret key (prefer the environment variable) [env STRATA_S3_SECRET_KEY]")
 	boolean(&c.S3.PathStyle, "s3-path-style", "STRATA_S3_PATH_STYLE", false, "path-style bucket addressing; defaults to on when an endpoint is set, since self-hosted S3 servers need it")
+	boolean(&c.AdoptBucket, "adopt-bucket", "STRATA_ADOPT_BUCKET", false, "DANGEROUS: start even though the bucket belongs to a different manifest; its existing segments will be deleted as orphans")
 	boolean(&c.CreateBucket, "s3-create-bucket", "STRATA_S3_CREATE_BUCKET", false, "create the bucket at startup if missing")
 
 	var bufBytes int64
@@ -144,6 +153,7 @@ func ParseConfig(args []string, getenv func(string) string) (Config, error) {
 	var maxRecv int64
 	num(&maxRecv, "max-recv-bytes", "STRATA_MAX_RECV_BYTES", ingest.DefaultMaxRecvMsgBytes, "largest gRPC request accepted")
 	dur(&c.ShutdownGrace, "shutdown-grace", "STRATA_SHUTDOWN_GRACE", 10*time.Second, "how long to let in-flight streams finish at shutdown")
+	fs.BoolVar(&c.Healthcheck, "healthcheck", false, "check whether the server at -listen is serving, then exit 0 (yes) or 1 (no); for container healthchecks")
 	str(&c.LogLevel, "log-level", "STRATA_LOG_LEVEL", "info", "debug, info, warn or error")
 
 	if len(envErrs) > 0 {

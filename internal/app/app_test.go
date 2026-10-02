@@ -392,3 +392,142 @@ func TestStartAgainstRealS3(t *testing.T) {
 	}
 	s3.DeleteBucket(ctx)
 }
+
+// ---- manifest / bucket identity -------------------------------------------
+
+func objects(t *testing.T, s storage.Storage, prefix string) []string {
+	t.Helper()
+	keys, err := s.List(ctx, prefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return keys
+}
+
+// The disaster this guards against: the manifest file is lost (a container
+// restarted without its volume) while the bucket still holds all the data. A
+// fresh manifest knows none of those segments, so garbage collection would
+// treat them all as orphans and delete them. Strata must refuse to start.
+func TestLostManifestIsRefusedInsteadOfDestroyingData(t *testing.T) {
+	store := storagetest.NewMem()
+	cfg := testConfig(t, store)
+	a, err := Start(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ingestLines(t, a, "precious", 300)
+	shutdown(t, a)
+	before := objects(t, store, "")
+	if len(before) < 1 { // at least one segment (plus the identity marker)
+		t.Fatalf("setup: %v", before)
+	}
+
+	// "Lose" the manifest: start again with a brand-new manifest file.
+	lost := cfg
+	lost.ManifestPath = filepath.Join(t.TempDir(), "fresh-manifest.db")
+	lost.CompactEnabled = true
+	lost.CompactInterval = 10 * time.Millisecond
+	lost.CompactSmallBytes, lost.CompactTargetBytes = 1<<20, 8<<20
+	lost.OrphanGrace = time.Nanosecond // GC would delete everything if it ever ran
+	_, err = Start(ctx, lost)
+	if err == nil || !strings.Contains(err.Error(), "different manifest") || !strings.Contains(err.Error(), "adopt-bucket") {
+		t.Fatalf("want a refusal that explains the problem and the way out, got %v", err)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if after := objects(t, store, ""); fmt.Sprint(after) != fmt.Sprint(before) {
+		t.Fatalf("storage changed:\n before %v\n after  %v", before, after)
+	}
+
+	// The original manifest still works, with all the data.
+	a2, err := Start(ctx, cfg)
+	if err != nil {
+		t.Fatalf("original manifest no longer starts: %v", err)
+	}
+	shutdown(t, a2)
+	msgs, _ := readBack(t, cfg)
+	assertExactlyOnce(t, msgs, 300)
+}
+
+// -adopt-bucket is the deliberate way out: start fresh on a used bucket,
+// accepting that the old segments will be removed as orphans.
+func TestAdoptBucketOverridesTheRefusal(t *testing.T) {
+	store := storagetest.NewMem()
+	cfg := testConfig(t, store)
+	a, _ := Start(ctx, cfg)
+	ingestLines(t, a, "old", 50)
+	shutdown(t, a)
+
+	fresh := cfg
+	fresh.ManifestPath = filepath.Join(t.TempDir(), "fresh.db")
+	fresh.AdoptBucket = true
+	b, err := Start(ctx, fresh)
+	if err != nil {
+		t.Fatalf("adopt should start: %v", err)
+	}
+	ingestLines(t, b, "new", 20)
+	shutdown(t, b)
+
+	// The marker now belongs to the new manifest, so a later start without the
+	// flag is fine, and the old manifest is now the mismatched one.
+	c, err := Start(ctx, fresh)
+	if err != nil {
+		t.Fatalf("restart after adopting: %v", err)
+	}
+	shutdown(t, c)
+	if _, err := Start(ctx, cfg); err == nil {
+		t.Fatal("the previous manifest should now be refused")
+	}
+	msgs, _ := readBack(t, fresh)
+	assertExactlyOnce(t, msgs, 20)
+}
+
+func TestBucketWithSegmentsButNoMarkerAndEmptyManifestIsRefused(t *testing.T) {
+	store := storagetest.NewMem()
+	cfg := testConfig(t, store)
+	a, _ := Start(ctx, cfg)
+	ingestLines(t, a, "x", 10)
+	shutdown(t, a)
+	store.Delete(ctx, identityKey) // marker gone too
+
+	fresh := cfg
+	fresh.ManifestPath = filepath.Join(t.TempDir(), "fresh.db")
+	if _, err := Start(ctx, fresh); err == nil || !strings.Contains(err.Error(), "none") {
+		t.Fatalf("want a refusal, got %v", err)
+	}
+}
+
+// A deployment from before the marker existed: the manifest has history, the
+// bucket has no marker. That is fine; the marker is simply written.
+func TestMissingMarkerWithAnEstablishedManifestIsWritten(t *testing.T) {
+	store := storagetest.NewMem()
+	cfg := testConfig(t, store)
+	a, _ := Start(ctx, cfg)
+	ingestLines(t, a, "x", 10)
+	shutdown(t, a)
+	store.Delete(ctx, identityKey)
+
+	b, err := Start(ctx, cfg)
+	if err != nil {
+		t.Fatalf("an established manifest must start without a marker: %v", err)
+	}
+	shutdown(t, b)
+	if _, found, _ := readMarker(ctx, store); !found {
+		t.Fatal("marker was not written")
+	}
+}
+
+func TestNewBucketGetsAMarkerAndSegmentListingsIgnoreIt(t *testing.T) {
+	store := storagetest.NewMem()
+	cfg := testConfig(t, store)
+	a, err := Start(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shutdown(t, a)
+	if _, found, _ := readMarker(ctx, store); !found {
+		t.Fatal("no marker written for a new bucket")
+	}
+	if segs := objects(t, store, "segments/"); len(segs) != 0 {
+		t.Fatalf("marker leaked into the segments prefix: %v", segs)
+	}
+}

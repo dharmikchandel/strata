@@ -367,3 +367,42 @@ func TestUpgradeFromSchemaV1(t *testing.T) {
 		t.Fatalf("after upgrade: %v %v", got, err)
 	}
 }
+
+func TestInstanceIDIsStableAndPerFile(t *testing.T) {
+	m, path := openTemp(t)
+	id, created, err := m.InstanceID(ctx)
+	if err != nil || !created || len(id) != 32 {
+		t.Fatalf("first call: %q created=%v err=%v", id, created, err)
+	}
+	id2, created2, _ := m.InstanceID(ctx)
+	if id2 != id || created2 {
+		t.Fatalf("second call: %q created=%v", id2, created2)
+	}
+	m.Close()
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m2.Close()
+	if id3, created3, _ := m2.InstanceID(ctx); id3 != id || created3 {
+		t.Fatalf("id changed across reopen: %q", id3)
+	}
+	// A different file gets a different identity.
+	other, _ := openTemp(t)
+	if oid, _, _ := other.InstanceID(ctx); oid == id {
+		t.Fatal("two manifests share an identity")
+	}
+}
+
+func TestCountAllIncludesDeleted(t *testing.T) {
+	m, _ := openTemp(t)
+	m.AddSegment(ctx, seg("a", 1, 2, 1))
+	m.AddSegment(ctx, seg("b", 1, 2, 1))
+	m.Replace(ctx, nil, []string{"a"})
+	if n, _ := m.CountAll(ctx); n != 2 {
+		t.Fatalf("CountAll = %d, want 2", n)
+	}
+	if n, _ := m.CountActive(ctx); n != 1 {
+		t.Fatalf("CountActive = %d, want 1", n)
+	}
+}

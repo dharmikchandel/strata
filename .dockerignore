@@ -1,0 +1,8 @@
+# Keep private notes, local state and secrets out of the image.
+.git
+notes
+data
+*.db
+*.db-wal
+*.db-shm
+.env

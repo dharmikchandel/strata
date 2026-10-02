@@ -88,6 +88,11 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 	}
 	a.manifest = m
 
+	// 2b. Make sure this manifest and this bucket belong together.
+	if err := checkIdentity(ctx, m, a.store, cfg.AdoptBucket, a.log); err != nil {
+		return nil, fmt.Errorf("startup: %w", err)
+	}
+
 	// 3. Ingest buffer. A sealed segment is recorded in the manifest as part
 	// of sealing: if recording fails the buffer deletes the file and keeps the
 	// entries (see ingest.Config.OnSeal).

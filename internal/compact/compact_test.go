@@ -836,3 +836,35 @@ func TestCompactionAgainstS3(t *testing.T) {
 		t.Fatalf("gc on a clean bucket: %+v %v", gc, err)
 	}
 }
+
+// This documents WHY the server checks the manifest's identity at startup
+// (app.checkIdentity): garbage collection trusts its manifest completely. Given
+// a wrong or fresh manifest, every real segment looks like an orphan and is
+// deleted. Nothing in the compactor can tell the difference, so the protection
+// has to happen before it ever runs.
+func TestGCTrustsItsManifestSoAWrongOneDestroysData(t *testing.T) {
+	e := newEnv(t)
+	for i := 0; i < 3; i++ {
+		e.addSegment(int64(i*100), 10)
+	}
+	if len(e.objects()) != 3 {
+		t.Fatal("setup")
+	}
+
+	other, err := manifest.Open(filepath.Join(t.TempDir(), "other.db")) // wrong/lost manifest
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	// A recorded segment of its own, so it is not merely "empty".
+	c, _ := New(Config{Manifest: other, Storage: e.store, OrphanGrace: time.Nanosecond, Logger: quiet})
+	time.Sleep(2 * time.Millisecond)
+	// Backdate: segment IDs were just created, so the grace already passed.
+	gc, err := c.GarbageCollect(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gc.OrphansDeleted != 3 || len(e.objects()) != 0 {
+		t.Fatalf("expected the wrong manifest's GC to delete all 3 real segments: %+v, %d left", gc, len(e.objects()))
+	}
+}
