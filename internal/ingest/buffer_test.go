@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/dharmikchandel/strata/internal/manifest"
 	"github.com/dharmikchandel/strata/internal/segment"
 	"github.com/dharmikchandel/strata/internal/storage"
 	"github.com/dharmikchandel/strata/internal/storage/storagetest"
@@ -481,4 +483,109 @@ func TestSealToS3(t *testing.T) {
 		seen[e.Message] = true
 	}
 	t.Logf("%d entries in %d segments on S3", len(es), n)
+}
+
+// --- Manifest integration -------------------------------------------------
+
+func toManifestSegment(ss SealedSegment) manifest.Segment {
+	return manifest.Segment{ID: ss.ID, Key: ss.Key, MinTS: ss.MinTS, MaxTS: ss.MaxTS, Count: ss.Count, Size: ss.Size}
+}
+
+// Sealing a segment records it in the manifest, with metadata that matches
+// the stored file.
+func TestSealedSegmentsAreRecordedInManifest(t *testing.T) {
+	m, err := manifest.Open(filepath.Join(t.TempDir(), "manifest.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer m.Close()
+	mem := storagetest.NewMem()
+	b, _ := NewBuffer(Config{
+		Storage: mem, MaxBytes: 300, MaxAge: time.Hour,
+		OnSeal: func(ss SealedSegment) error { return m.AddSegment(ctx, toManifestSegment(ss)) },
+	})
+	for i := 0; i < 100; i++ {
+		if err := b.Add(ctx, segment.Entry{Timestamp: int64(1000 + i), Message: fmt.Sprintf("line %03d with some padding text", i)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := m.List(ctx, manifest.StatusActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, _ := mem.List(ctx, SegmentPrefix)
+	if len(rows) != len(keys) || len(rows) < 2 {
+		t.Fatalf("manifest has %d segments, storage has %d", len(rows), len(keys))
+	}
+	total := 0
+	for _, r := range rows {
+		total += r.Count
+		data, _ := mem.Get(ctx, r.Key)
+		raw, _ := io.ReadAll(data)
+		seg, err := segment.Decode(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if int64(len(raw)) != r.Size || seg.Len() != r.Count || seg.MinTimestamp() != r.MinTS || seg.MaxTimestamp() != r.MaxTS {
+			t.Fatalf("manifest row %+v does not match the stored segment (len %d, count %d, [%d,%d])",
+				r, len(raw), seg.Len(), seg.MinTimestamp(), seg.MaxTimestamp())
+		}
+	}
+	if total != 100 {
+		t.Fatalf("manifest counts sum to %d, want 100", total)
+	}
+}
+
+// The manifest becomes unavailable while sealing, then comes back. This is
+// the real version of the "OnSeal fails" case: no entry is lost, the stored
+// file is cleaned up, and once the manifest is back the entries are recorded
+// exactly once.
+func TestManifestOutageLosesNothing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "manifest.db")
+	open := func() *manifest.Manifest {
+		m, err := manifest.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	var current atomic.Pointer[manifest.Manifest]
+	m := open()
+	current.Store(m)
+
+	mem := storagetest.NewMem()
+	b, _ := NewBuffer(Config{
+		Storage: mem, MaxBytes: 1 << 30, MaxAge: time.Hour,
+		OnSeal: func(ss SealedSegment) error {
+			return current.Load().AddSegment(ctx, toManifestSegment(ss))
+		},
+	})
+	b.Add(ctx, segment.Entry{Timestamp: 1, Message: "a"})
+	b.Add(ctx, segment.Entry{Timestamp: 2, Message: "b"})
+
+	m.Close() // outage
+	if err := b.Flush(ctx); err == nil {
+		t.Fatal("expected the flush to fail while the manifest is down")
+	}
+	if _, n := readAll(t, mem); n != 0 {
+		t.Fatalf("segment left in storage without a manifest row (%d objects)", n)
+	}
+
+	m2 := open() // recovery
+	defer m2.Close()
+	current.Store(m2)
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := m2.List(ctx, manifest.StatusActive)
+	if len(rows) != 1 || rows[0].Count != 2 {
+		t.Fatalf("manifest after recovery: %+v", rows)
+	}
+	if got := messages(readKeys(t, mem, []string{rows[0].Key})); len(got) != 2 {
+		t.Fatalf("recorded segment holds %v", got)
+	}
 }
