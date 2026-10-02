@@ -589,3 +589,58 @@ func TestManifestOutageLosesNothing(t *testing.T) {
 		t.Fatalf("recorded segment holds %v", got)
 	}
 }
+
+// --- AddBatch -------------------------------------------------------------
+
+func TestAddBatchIsAllOrNothing(t *testing.T) {
+	mem := storagetest.NewMem()
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 1 << 30, MaxAge: time.Hour})
+	err := b.AddBatch(ctx, []segment.Entry{
+		{Timestamp: 1, Message: "fine"},
+		{Timestamp: 2, Message: "bad", Tags: map[string]string{"a=b": "c"}},
+	})
+	if !errors.Is(err, segment.ErrInvalidEntry) || Accepted(err) {
+		t.Fatalf("want a rejection, got %v", err)
+	}
+	b.Close(ctx)
+	if es, _ := readAll(t, mem); len(es) != 0 {
+		t.Fatalf("part of a rejected batch was stored: %v", es)
+	}
+}
+
+// A seal that fails because of an AddBatch must be reported as a failed seal,
+// distinguishable from a rejection, and the batch must still be kept.
+func TestAddBatchSealFailureStillAccepts(t *testing.T) {
+	mem := storagetest.NewMem()
+	mem.FailNextPuts(1)
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 50, MaxAge: time.Hour})
+	err := b.AddBatch(ctx, []segment.Entry{
+		{Timestamp: 1, Message: "this message is long enough to trip the size limit on its own"},
+	})
+	if !errors.Is(err, ErrSealFailed) || !Accepted(err) {
+		t.Fatalf("want ErrSealFailed and Accepted, got %v", err)
+	}
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if es, _ := readAll(t, mem); len(es) != 1 {
+		t.Fatalf("accepted entry was lost: %v", es)
+	}
+}
+
+func TestAddBatchRejectedWholeWhenFull(t *testing.T) {
+	mem := storagetest.NewMem()
+	mem.FailNextPuts(1 << 20)
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 100, MaxAge: time.Hour})
+	var full bool
+	for i := 0; i < 100 && !full; i++ {
+		err := b.AddBatch(ctx, []segment.Entry{{Message: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, {Message: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}})
+		full = errors.Is(err, ErrBufferFull)
+		if full && Accepted(err) {
+			t.Fatal("ErrBufferFull must not count as accepted")
+		}
+	}
+	if !full {
+		t.Fatal("never got ErrBufferFull")
+	}
+}

@@ -38,6 +38,9 @@ var (
 	// ErrBufferFull means sealing is failing and the buffer hit its memory
 	// cap. The entry was not accepted.
 	ErrBufferFull = errors.New("ingest: buffer full")
+	// ErrSealFailed wraps errors from a seal attempt triggered by AddBatch.
+	// The batch that triggered it was still accepted.
+	ErrSealFailed = errors.New("ingest: seal failed")
 )
 
 // SealedSegment describes a segment that was durably written to storage.
@@ -117,24 +120,48 @@ func NewBuffer(cfg Config) (*Buffer, error) {
 	return b, nil
 }
 
-// Add buffers an entry, sealing a segment if the size threshold is reached.
-//
-// Error contract: ErrClosed, ErrBufferFull and validation errors mean the
-// entry was NOT accepted. Any other error means the entry IS buffered (it is
-// not lost) but a seal attempt failed; it will be retried by later Adds, the
-// timer, or Flush.
+// Add buffers one entry. It is AddBatch with a single entry.
 func (b *Buffer) Add(ctx context.Context, e segment.Entry) error {
-	if err := e.Validate(); err != nil {
-		return err
+	return b.AddBatch(ctx, []segment.Entry{e})
+}
+
+// AddBatch buffers several entries as one all-or-nothing unit, sealing a
+// segment if the size threshold is reached.
+//
+// All-or-nothing means: if any entry is invalid, or the buffer is closed or
+// full, NONE of the entries are added. A caller never has to work out which
+// part of a batch was taken. It also takes the lock once per batch instead of
+// once per entry.
+//
+// Error contract:
+//   - ErrClosed, ErrBufferFull and validation errors: the batch was NOT accepted.
+//   - an error wrapping ErrSealFailed: the batch IS accepted (buffered, not
+//     lost), but a seal attempt triggered by it failed. The seal will be
+//     retried by later calls, the timer, or Flush. Use Accepted(err) to tell
+//     the two apart.
+func (b *Buffer) AddBatch(ctx context.Context, entries []segment.Entry) error {
+	if len(entries) == 0 {
+		return nil
 	}
-	// Copy the tag map: the caller may reuse or mutate it after Add returns,
-	// and the entry will sit in memory for a while before being sealed.
-	if e.Tags != nil {
-		tags := make(map[string]string, len(e.Tags))
-		for k, v := range e.Tags {
-			tags[k] = v
+	for _, e := range entries {
+		if err := e.Validate(); err != nil {
+			return err
 		}
-		e.Tags = tags
+	}
+	// Copy tag maps: the caller may reuse or mutate them after we return, and
+	// the entries will sit in memory for a while before being sealed.
+	owned := make([]segment.Entry, len(entries))
+	size := 0
+	for i, e := range entries {
+		if e.Tags != nil {
+			tags := make(map[string]string, len(e.Tags))
+			for k, v := range e.Tags {
+				tags[k] = v
+			}
+			e.Tags = tags
+		}
+		owned[i] = e
+		size += entrySize(e)
 	}
 
 	b.mu.Lock()
@@ -149,8 +176,8 @@ func (b *Buffer) Add(ctx context.Context, e segment.Entry) error {
 	if len(b.pending.entries) == 0 {
 		b.pending.firstAt = time.Now()
 	}
-	b.pending.entries = append(b.pending.entries, e)
-	b.pending.bytes += entrySize(e)
+	b.pending.entries = append(b.pending.entries, owned...)
+	b.pending.bytes += size
 	var full *batch
 	if b.pending.bytes >= b.cfg.MaxBytes {
 		full = b.takeLocked()
@@ -158,9 +185,17 @@ func (b *Buffer) Add(ctx context.Context, e segment.Entry) error {
 	b.mu.Unlock()
 
 	if full != nil {
-		return b.seal(ctx, full)
+		if err := b.seal(ctx, full); err != nil {
+			return fmt.Errorf("%w: %w", ErrSealFailed, err)
+		}
 	}
 	return nil
+}
+
+// Accepted reports whether err from Add/AddBatch still means the entries were
+// accepted (nil, or a failed seal) as opposed to rejected.
+func Accepted(err error) bool {
+	return err == nil || errors.Is(err, ErrSealFailed)
 }
 
 // Flush seals whatever is buffered right now. It is a no-op if empty.

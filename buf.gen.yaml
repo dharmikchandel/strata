@@ -1,0 +1,12 @@
+# Generates Go code into gen/. Run from the repo root:
+#   go run github.com/bufbuild/buf/cmd/buf@v1.73.0 generate
+# Tool versions are pinned here so generated code is reproducible, and kept out
+# of go.mod so the project's dependencies stay limited to what it imports.
+version: v2
+plugins:
+  - local: [go, run, google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12]
+    out: gen
+    opt: paths=source_relative
+  - local: [go, run, google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2]
+    out: gen
+    opt: paths=source_relative

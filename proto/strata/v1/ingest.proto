@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package strata.v1;
+
+option go_package = "github.com/dharmikchandel/strata/gen/strata/v1;stratav1";
+
+// IngestService accepts log lines from clients.
+service IngestService {
+  // Ingest is a bidirectional stream: the client sends batches of log lines
+  // and the server answers each batch with an IngestResponse, in order.
+  //
+  // Why bidirectional and not "client streams, server replies once at the end":
+  // with a single final reply, a connection that breaks halfway leaves the
+  // client not knowing which lines were taken. A per-batch reply tells the
+  // client exactly what the server accepted, so it can resend only the rest.
+  rpc Ingest(stream IngestRequest) returns (stream IngestResponse);
+}
+
+// A single log line.
+message LogEntry {
+  // When the line was logged, as nanoseconds since the Unix epoch.
+  // Zero means "not set": the server then uses its own receive time.
+  int64 timestamp_unix_nano = 1;
+  string message = 2;
+  // Optional exact-match labels, e.g. {"service": "api"}. Keys must be
+  // non-empty and must not contain '='.
+  map<string, string> tags = 3;
+}
+
+// A batch of log lines. Batching amortizes per-message overhead.
+message IngestRequest {
+  // Chosen by the client and echoed back in the reply, so the client can match
+  // replies to the batches it sent.
+  uint64 batch_id = 1;
+  repeated LogEntry entries = 2;
+}
+
+enum IngestStatus {
+  INGEST_STATUS_UNSPECIFIED = 0;
+  // Every entry in the batch was accepted into the server's buffer.
+  // NOT yet durable: the lines become durable when the server seals them into
+  // a segment in object storage (within seconds, or when the buffer fills).
+  INGEST_STATUS_OK = 1;
+  // The batch was rejected because an entry is invalid. Nothing from the
+  // batch was stored. Retrying it unchanged will fail the same way.
+  INGEST_STATUS_INVALID = 2;
+  // The server is overloaded (storage is failing and its buffer is full).
+  // Nothing from the batch was stored. Retry later, with backoff.
+  INGEST_STATUS_BUFFER_FULL = 3;
+}
+
+message IngestResponse {
+  uint64 batch_id = 1;
+  IngestStatus status = 2;
+  // Number of entries accepted: all of them for OK, zero otherwise. A batch is
+  // all-or-nothing, so a client never has to work out which part was taken.
+  uint32 accepted = 3;
+  // Human-readable detail for non-OK statuses.
+  string message = 4;
+}
