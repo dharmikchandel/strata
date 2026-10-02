@@ -198,6 +198,14 @@ func Accepted(err error) bool {
 	return err == nil || errors.Is(err, ErrSealFailed)
 }
 
+// Pending returns how many entries are buffered in memory and not yet sealed.
+// At shutdown it says how much is at risk if the final flush fails.
+func (b *Buffer) Pending() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return len(b.pending.entries)
+}
+
 // Flush seals whatever is buffered right now. It is a no-op if empty.
 func (b *Buffer) Flush(ctx context.Context) error {
 	b.mu.Lock()

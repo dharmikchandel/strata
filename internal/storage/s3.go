@@ -104,6 +104,20 @@ func (s *S3) EnsureBucket(ctx context.Context) error {
 	return nil
 }
 
+// CheckBucket verifies the bucket exists and the credentials can reach it,
+// without creating anything. Used at startup to fail fast with a clear error.
+func (s *S3) CheckBucket(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if _, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: &s.bucket}); err != nil {
+		if isNotFound(err) {
+			return fmt.Errorf("storage: bucket %q does not exist", s.bucket)
+		}
+		return fmt.Errorf("storage: cannot reach bucket %q: %w", s.bucket, err)
+	}
+	return nil
+}
+
 // DeleteBucket removes the (empty) bucket. It exists for tests and tooling;
 // Strata itself never deletes buckets.
 func (s *S3) DeleteBucket(ctx context.Context) error {
