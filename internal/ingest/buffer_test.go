@@ -488,7 +488,7 @@ func TestSealToS3(t *testing.T) {
 // --- Manifest integration -------------------------------------------------
 
 func toManifestSegment(ss SealedSegment) manifest.Segment {
-	return manifest.Segment{ID: ss.ID, Key: ss.Key, MinTS: ss.MinTS, MaxTS: ss.MaxTS, Count: ss.Count, Size: ss.Size}
+	return manifest.Segment{ID: ss.ID, Key: ss.Key, MinTS: ss.MinTS, MaxTS: ss.MaxTS, Count: ss.Count, Size: ss.Size, Bloom: ss.Bloom}
 }
 
 // Sealing a segment records it in the manifest, with metadata that matches

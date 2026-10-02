@@ -34,14 +34,8 @@ func Decode(data []byte) (*Segment, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Sections must tile the file exactly: header | lines | index | bloom.
-	// Checking this before slicing means the slices below cannot go out of range.
-	if h.LinesOff != uint64(headerSize) ||
-		h.IndexOff != h.LinesOff+h.LinesLen ||
-		h.BloomOff != h.IndexOff+h.IndexLen ||
-		h.BloomOff+h.BloomLen != uint64(len(data)) ||
-		h.LinesLen > uint64(len(data)) || h.IndexLen > uint64(len(data)) {
-		return nil, corrupt("section layout does not match file size")
+	if err := checkLayout(h, len(data)); err != nil {
+		return nil, err
 	}
 	if crc32.ChecksumIEEE(data[headerSize:]) != h.BodyCRC {
 		return nil, corrupt("body checksum mismatch")
@@ -59,6 +53,35 @@ func Decode(data []byte) (*Segment, error) {
 		return nil, corrupt("bloom: %v", err)
 	}
 	return s, nil
+}
+
+// checkLayout verifies that the sections tile the file exactly:
+// header | lines | index | bloom. Checking this before slicing means the
+// slices taken from the offsets cannot go out of range.
+func checkLayout(h header, size int) error {
+	if h.LinesOff != uint64(headerSize) ||
+		h.IndexOff != h.LinesOff+h.LinesLen ||
+		h.BloomOff != h.IndexOff+h.IndexLen ||
+		h.BloomOff+h.BloomLen != uint64(size) ||
+		h.LinesLen > uint64(size) || h.IndexLen > uint64(size) {
+		return corrupt("section layout does not match file size")
+	}
+	return nil
+}
+
+// ReadBloom returns the serialized bloom filter of a segment image without
+// decoding the rest of it. The manifest stores this copy so queries can rule a
+// segment out without fetching it. It checks the header and layout but does
+// not verify the body checksum (use Decode for that).
+func ReadBloom(data []byte) ([]byte, error) {
+	h, err := parseHeader(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkLayout(h, len(data)); err != nil {
+		return nil, err
+	}
+	return append([]byte(nil), data[h.BloomOff:h.BloomOff+h.BloomLen]...), nil
 }
 
 func (s *Segment) decodeLines(sec []byte) error {
@@ -180,6 +203,49 @@ func (s *Segment) Entry(id uint32) (Entry, error) {
 		return Entry{}, fmt.Errorf("line %d: %w", id, c.err)
 	}
 	return e, nil
+}
+
+// Timestamp returns the timestamp of line id without decoding the rest of
+// the line.
+func (s *Segment) Timestamp(id uint32) (int64, error) {
+	if int(id) >= len(s.offsets) {
+		return 0, fmt.Errorf("segment: line %d out of range (have %d)", id, len(s.offsets))
+	}
+	rec := s.records[s.offsets[id]:]
+	if len(rec) < 8 {
+		return 0, corrupt("record %d too short", id)
+	}
+	return int64(binary.LittleEndian.Uint64(rec)), nil
+}
+
+// IDRange returns the line ids whose timestamps fall in [from, to) as the
+// half-open id range [lo, hi). Lines are stored sorted by timestamp, so this
+// is a binary search that decodes only O(log n) timestamps, instead of
+// scanning every line.
+func (s *Segment) IDRange(from, to int64) (lo, hi uint32, err error) {
+	n := s.Len()
+	firstAtOrAfter := func(ts int64) (uint32, error) {
+		var searchErr error
+		i := sort.Search(n, func(i int) bool {
+			t, err := s.Timestamp(uint32(i))
+			if err != nil {
+				searchErr = err
+				return true
+			}
+			return t >= ts
+		})
+		return uint32(i), searchErr
+	}
+	if lo, err = firstAtOrAfter(from); err != nil {
+		return 0, 0, err
+	}
+	if hi, err = firstAtOrAfter(to); err != nil {
+		return 0, 0, err
+	}
+	if hi < lo {
+		hi = lo
+	}
+	return lo, hi, nil
 }
 
 // Entries decodes every line in order.

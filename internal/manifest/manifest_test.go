@@ -2,9 +2,11 @@ package manifest
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -295,4 +297,73 @@ func TestReadersNeverSeeAHalfFinishedSwap(t *testing.T) {
 		t.Fatalf("final state: %+v", got)
 	}
 	t.Logf("%d atomic swaps observed by 4 concurrent readers", n)
+}
+
+func TestOverlappingBoundaries(t *testing.T) {
+	m, _ := openTemp(t)
+	a, b := seg("a", 0, 9, 1), seg("b", 10, 19, 1)
+	a.Bloom = []byte{1, 2, 3}
+	m.AddSegment(ctx, a)
+	m.AddSegment(ctx, b)
+	m.AddSegment(ctx, seg("gone", 0, 100, 1))
+	m.Replace(ctx, nil, []string{"gone"})
+
+	cases := []struct {
+		from, to int64
+		want     string
+	}{
+		{0, 100, "[a b]"},
+		{10, 20, "[b]"},  // starts exactly where b starts
+		{9, 10, "[a]"},   // `to` is exclusive: b (min 10) is out
+		{19, 20, "[b]"},  // `from` is inclusive: b (max 19) is in
+		{20, 30, "[]"},   // after everything
+		{-50, 0, "[]"},   // before everything (to is exclusive)
+		{5, 15, "[a b]"}, // spans both
+	}
+	for _, c := range cases {
+		got, err := m.Overlapping(ctx, c.from, c.to)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fmt.Sprint(ids(got)) != c.want {
+			t.Errorf("[%d,%d): got %v want %s", c.from, c.to, ids(got), c.want)
+		}
+	}
+	got, _ := m.Overlapping(ctx, 0, 100)
+	if !reflect.DeepEqual(got[0].Bloom, []byte{1, 2, 3}) || got[1].Bloom != nil {
+		t.Fatalf("bloom not round-tripped: %v / %v", got[0].Bloom, got[1].Bloom)
+	}
+	if n, _ := m.CountActive(ctx); n != 2 {
+		t.Fatalf("CountActive = %d, want 2 (deleted segments excluded)", n)
+	}
+}
+
+// A database created by the previous version of Strata (schema 1, no bloom
+// column) must upgrade in place, keeping its rows.
+func TestUpgradeFromSchemaV1(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "old.db")
+	raw, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(migrations[0]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`INSERT INTO segments VALUES ('old','segments/old.strata',1,2,3,4,'active',0)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`PRAGMA user_version = 1`); err != nil {
+		t.Fatal(err)
+	}
+	raw.Close()
+
+	m, err := Open(path)
+	if err != nil {
+		t.Fatalf("upgrade failed: %v", err)
+	}
+	defer m.Close()
+	got, err := m.Overlapping(ctx, 0, 10)
+	if err != nil || len(got) != 1 || got[0].ID != "old" || got[0].Bloom != nil {
+		t.Fatalf("after upgrade: %v %v", got, err)
+	}
 }

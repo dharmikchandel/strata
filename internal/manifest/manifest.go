@@ -55,6 +55,12 @@ type Segment struct {
 	Size      int64 // bytes of the segment file
 	Status    Status
 	CreatedAt time.Time
+	// Bloom is the segment's serialized bloom filter (segment.ReadBloom). It
+	// lets queries rule a segment out without fetching it from storage. Only
+	// filled in by Overlapping, which queries use; List leaves it nil to keep
+	// listings light. Nil in a stored row means "unknown", and such a segment
+	// can never be skipped by a bloom check.
+	Bloom []byte
 }
 
 func (s Segment) validate() error {
@@ -132,6 +138,10 @@ var migrations = []string{
 		CHECK (min_ts <= max_ts)
 	);
 	CREATE INDEX segments_status_time ON segments (status, min_ts, max_ts);`,
+	// 2: keep each segment's bloom filter in the manifest so a query can
+	// skip segments without any storage reads. NULL for rows written before
+	// this migration, which are simply never skipped by the bloom check.
+	`ALTER TABLE segments ADD COLUMN bloom BLOB;`,
 }
 
 func migrate(ctx context.Context, db *sql.DB) error {
@@ -197,9 +207,9 @@ func (m *Manifest) Replace(ctx context.Context, add []Segment, deleteIDs []strin
 	now := time.Now().UnixNano()
 	for _, s := range add {
 		_, err := tx.ExecContext(ctx,
-			`INSERT INTO segments (id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at)
-			 VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
-			s.ID, s.Key, s.MinTS, s.MaxTS, s.Count, s.Size, now)
+			`INSERT INTO segments (id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at, bloom)
+			 VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+			s.ID, s.Key, s.MinTS, s.MaxTS, s.Count, s.Size, now, s.Bloom)
 		if err != nil {
 			if isConstraintViolation(err) {
 				return fmt.Errorf("%w: id %q, key %q", ErrDuplicate, s.ID, s.Key)
@@ -261,6 +271,49 @@ func (m *Manifest) List(ctx context.Context, status Status) ([]Segment, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("manifest: list: %w", err)
+	}
+	return out, nil
+}
+
+// CountActive returns how many active segments exist.
+func (m *Manifest) CountActive(ctx context.Context) (int, error) {
+	var n int
+	err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM segments WHERE status = 'active'`).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("manifest: count: %w", err)
+	}
+	return n, nil
+}
+
+// Overlapping returns the active segments whose time range overlaps
+// [from, to), including their bloom filters, ordered by min timestamp then
+// ID. A segment overlaps if it has any entry that could fall in the range:
+// max_ts >= from and min_ts < to. This is the first filter of the query path:
+// segments outside the range are never even considered for reading.
+func (m *Manifest) Overlapping(ctx context.Context, from, to int64) ([]Segment, error) {
+	rows, err := m.db.QueryContext(ctx,
+		`SELECT id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at, bloom
+		 FROM segments
+		 WHERE status = 'active' AND max_ts >= ? AND min_ts < ?
+		 ORDER BY min_ts, id`, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("manifest: overlapping: %w", err)
+	}
+	defer rows.Close()
+	var out []Segment
+	for rows.Next() {
+		var s Segment
+		var created int64
+		var st string
+		if err := rows.Scan(&s.ID, &s.Key, &s.MinTS, &s.MaxTS, &s.Count, &s.Size, &st, &created, &s.Bloom); err != nil {
+			return nil, fmt.Errorf("manifest: scan: %w", err)
+		}
+		s.Status = Status(st)
+		s.CreatedAt = time.Unix(0, created)
+		out = append(out, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("manifest: overlapping: %w", err)
 	}
 	return out, nil
 }

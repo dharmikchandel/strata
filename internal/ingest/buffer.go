@@ -51,6 +51,8 @@ type SealedSegment struct {
 	MinTS int64
 	MaxTS int64
 	Size  int64 // bytes of the segment file
+	// Bloom is the segment's serialized bloom filter, for the manifest.
+	Bloom []byte
 }
 
 // Config controls a Buffer.
@@ -266,7 +268,12 @@ func (b *Buffer) write(ctx context.Context, bt *batch) error {
 	if err != nil {
 		return fmt.Errorf("ingest: encode segment: %w", err)
 	}
+	bloomBytes, err := segment.ReadBloom(data)
+	if err != nil {
+		return fmt.Errorf("ingest: read bloom of new segment: %w", err)
+	}
 	info := SealedSegment{
+		Bloom: bloomBytes,
 		ID:    newSegmentID(),
 		Count: len(bt.entries),
 		MinTS: bt.entries[0].Timestamp,

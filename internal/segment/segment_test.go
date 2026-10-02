@@ -313,3 +313,62 @@ func TestTokenize(t *testing.T) {
 		t.Fatalf("got %v want %v", got, want)
 	}
 }
+
+func TestIDRangeMatchesLinearScan(t *testing.T) {
+	rng := rand.New(rand.NewSource(3))
+	var entries []Entry
+	for i := 0; i < 500; i++ {
+		entries = append(entries, Entry{Timestamp: int64(rng.Intn(200)), Message: "m"})
+	}
+	seg := mustRoundTrip(t, entries)
+	for i := 0; i < 500; i++ {
+		from, to := int64(rng.Intn(260)-30), int64(rng.Intn(260)-30)
+		lo, hi, err := seg.IDRange(from, to)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var wantLo, wantHi uint32
+		first := true
+		for id := 0; id < seg.Len(); id++ {
+			ts, _ := seg.Timestamp(uint32(id))
+			if ts >= from && ts < to {
+				if first {
+					wantLo, first = uint32(id), false
+				}
+				wantHi = uint32(id) + 1
+			}
+		}
+		if first { // no match: any empty range is fine
+			if lo != hi {
+				t.Fatalf("[%d,%d): want empty range, got [%d,%d)", from, to, lo, hi)
+			}
+			continue
+		}
+		if lo != wantLo || hi != wantHi {
+			t.Fatalf("[%d,%d): got ids [%d,%d), want [%d,%d)", from, to, lo, hi, wantLo, wantHi)
+		}
+	}
+}
+
+func TestReadBloomMatchesDecodedBloom(t *testing.T) {
+	data, err := Encode(sampleEntries())
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := ReadBloom(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seg, _ := Decode(data)
+	if !bytes.Equal(raw, seg.Bloom().Marshal()) {
+		t.Fatal("ReadBloom differs from the decoded segment's bloom")
+	}
+	if _, err := ReadBloom(data[:20]); err == nil {
+		t.Fatal("truncated segment accepted")
+	}
+	bad := append([]byte{}, data...)
+	bad[0] ^= 1
+	if _, err := ReadBloom(bad); err == nil {
+		t.Fatal("bad magic accepted")
+	}
+}
