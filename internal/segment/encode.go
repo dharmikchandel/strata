@@ -26,6 +26,18 @@ type Entry struct {
 // ErrInvalidEntry is returned by Encode for entries that cannot be stored.
 var ErrInvalidEntry = errors.New("segment: invalid entry")
 
+// Validate reports whether the entry can be stored. Callers that accept
+// entries over time (the ingest buffer) use it to reject bad input up front:
+// an invalid entry discovered later, at seal time, would poison the whole batch.
+func (e Entry) Validate() error {
+	for k := range e.Tags {
+		if k == "" || strings.Contains(k, "=") {
+			return fmt.Errorf("%w: bad tag key %q", ErrInvalidEntry, k)
+		}
+	}
+	return nil
+}
+
 // Encode builds a complete segment file image from entries.
 //
 // Entries are sorted by timestamp (stable, so equal timestamps keep their
@@ -43,10 +55,8 @@ func Encode(entries []Entry) ([]byte, error) {
 		return nil, fmt.Errorf("%w: too many entries", ErrInvalidEntry)
 	}
 	for _, e := range entries {
-		for k := range e.Tags {
-			if k == "" || strings.Contains(k, "=") {
-				return nil, fmt.Errorf("%w: bad tag key %q", ErrInvalidEntry, k)
-			}
+		if err := e.Validate(); err != nil {
+			return nil, err
 		}
 	}
 
