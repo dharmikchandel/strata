@@ -326,3 +326,21 @@ func isConstraintViolation(err error) bool {
 	var coder interface{ Code() int }
 	return errors.As(err, &coder) && coder.Code()&0xff == 19
 }
+
+// PurgeDeleted permanently removes rows that are marked deleted. It is the
+// last step of cleaning up a replaced segment, after its file is gone: the row
+// served as a reminder that the file might still need deleting. Active rows
+// are never touched, even if listed in ids.
+func (m *Manifest) PurgeDeleted(ctx context.Context, ids []string) error {
+	tx, err := m.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("manifest: begin: %w", err)
+	}
+	defer tx.Rollback()
+	for _, id := range ids {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM segments WHERE id = ? AND status = 'deleted'`, id); err != nil {
+			return fmt.Errorf("manifest: purge %q: %w", id, err)
+		}
+	}
+	return tx.Commit()
+}

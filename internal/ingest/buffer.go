@@ -8,8 +8,6 @@ package ingest
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -29,7 +27,7 @@ const (
 	maxPendingFactor = 4
 
 	// SegmentPrefix is the storage key prefix for sealed segments.
-	SegmentPrefix = "segments/"
+	SegmentPrefix = segment.KeyPrefix
 )
 
 var (
@@ -274,7 +272,7 @@ func (b *Buffer) write(ctx context.Context, bt *batch) error {
 	}
 	info := SealedSegment{
 		Bloom: bloomBytes,
-		ID:    newSegmentID(),
+		ID:    segment.NewID(),
 		Count: len(bt.entries),
 		MinTS: bt.entries[0].Timestamp,
 		MaxTS: bt.entries[0].Timestamp,
@@ -284,7 +282,7 @@ func (b *Buffer) write(ctx context.Context, bt *batch) error {
 		info.MinTS = min(info.MinTS, e.Timestamp)
 		info.MaxTS = max(info.MaxTS, e.Timestamp)
 	}
-	info.Key = SegmentPrefix + info.ID + ".strata"
+	info.Key = segment.KeyForID(info.ID)
 
 	if err := b.cfg.Storage.Put(ctx, info.Key, bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("ingest: store segment: %w", err)
@@ -336,15 +334,4 @@ func entrySize(e segment.Entry) int {
 		n += len(k) + len(v)
 	}
 	return n
-}
-
-// newSegmentID returns a unique, roughly time-sortable ID: the seal time in
-// nanoseconds (hex, fixed width) plus random bytes so two segments sealed in
-// the same nanosecond, or by two processes, never collide.
-func newSegmentID() string {
-	var r [4]byte
-	if _, err := rand.Read(r[:]); err != nil {
-		panic(err) // crypto/rand failing means the OS is broken
-	}
-	return fmt.Sprintf("%016x-%s", time.Now().UnixNano(), hex.EncodeToString(r[:]))
 }
