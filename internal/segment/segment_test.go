@@ -11,7 +11,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/dharmikchandel/strata/internal/storage"
+	"github.com/dharmikchandel/strata/internal/storage/storagetest"
 )
 
 func sampleEntries() []Entry {
@@ -274,12 +274,9 @@ func FuzzDecode(f *testing.F) {
 }
 
 // TestWriteToStorageAndReadBack is the end-to-end Phase 1 path: encode,
-// store on disk, fetch, decode, and confirm the content survived.
+// store in the object store, fetch, decode, and confirm the content survived.
 func TestWriteToStorageAndReadBack(t *testing.T) {
-	store, err := storage.NewLocal(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	store := storagetest.NewMem()
 	ctx := context.Background()
 	data, err := Encode(sampleEntries())
 	if err != nil {

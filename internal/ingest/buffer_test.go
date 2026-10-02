@@ -13,18 +13,10 @@ import (
 
 	"github.com/dharmikchandel/strata/internal/segment"
 	"github.com/dharmikchandel/strata/internal/storage"
+	"github.com/dharmikchandel/strata/internal/storage/storagetest"
 )
 
 var ctx = context.Background()
-
-func newLocal(t *testing.T) *storage.Local {
-	t.Helper()
-	s, err := storage.NewLocal(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return s
-}
 
 // readAll decodes every stored segment and returns the entries and the
 // number of segments.
@@ -34,6 +26,12 @@ func readAll(t *testing.T, s storage.Storage) ([]segment.Entry, int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return readKeys(t, s, keys), len(keys)
+}
+
+// readKeys decodes the given segments and returns all their entries.
+func readKeys(t *testing.T, s storage.Storage, keys []string) []segment.Entry {
+	t.Helper()
 	var all []segment.Entry
 	for _, k := range keys {
 		r, err := s.Get(ctx, k)
@@ -55,7 +53,7 @@ func readAll(t *testing.T, s storage.Storage) ([]segment.Entry, int) {
 		}
 		all = append(all, es...)
 	}
-	return all, len(keys)
+	return all
 }
 
 func messages(es []segment.Entry) []string {
@@ -80,7 +78,7 @@ func eventually(t *testing.T, what string, cond func() bool) {
 }
 
 func TestSealsOnSizeThreshold(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	b, err := NewBuffer(Config{Storage: s, MaxBytes: 500, MaxAge: time.Hour})
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +105,7 @@ func TestSealsOnSizeThreshold(t *testing.T) {
 }
 
 func TestSealsOnAge(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	b, err := NewBuffer(Config{Storage: s, MaxBytes: 1 << 30, MaxAge: 50 * time.Millisecond})
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +123,7 @@ func TestSealsOnAge(t *testing.T) {
 }
 
 func TestFlushAndClose(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	b, _ := NewBuffer(Config{Storage: s, MaxBytes: 1 << 30, MaxAge: time.Hour})
 
 	if err := b.Flush(ctx); err != nil { // empty flush is a no-op
@@ -156,7 +154,7 @@ func TestFlushAndClose(t *testing.T) {
 }
 
 func TestAddCopiesTags(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	b, _ := NewBuffer(Config{Storage: s, MaxAge: time.Hour})
 	tags := map[string]string{"svc": "api"}
 	b.Add(ctx, segment.Entry{Timestamp: 1, Message: "x", Tags: tags})
@@ -169,7 +167,7 @@ func TestAddCopiesTags(t *testing.T) {
 }
 
 func TestAddRejectsInvalidEntry(t *testing.T) {
-	b, _ := NewBuffer(Config{Storage: newLocal(t), MaxAge: time.Hour})
+	b, _ := NewBuffer(Config{Storage: storagetest.NewMem(), MaxAge: time.Hour})
 	defer b.Close(ctx)
 	err := b.Add(ctx, segment.Entry{Message: "x", Tags: map[string]string{"a=b": "c"}})
 	if !errors.Is(err, segment.ErrInvalidEntry) {
@@ -178,7 +176,7 @@ func TestAddRejectsInvalidEntry(t *testing.T) {
 }
 
 func TestSealedSegmentMetadataAndOnSeal(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	var got []SealedSegment
 	b, _ := NewBuffer(Config{
 		Storage: s, MaxAge: time.Hour,
@@ -207,23 +205,10 @@ func TestSealedSegmentMetadataAndOnSeal(t *testing.T) {
 	}
 }
 
-// flakyStorage fails the first n Puts, then delegates.
-type flakyStorage struct {
-	storage.Storage
-	failures atomic.Int32
-}
-
-func (f *flakyStorage) Put(c context.Context, key string, r io.Reader) error {
-	if f.failures.Add(-1) >= 0 {
-		return errors.New("disk on fire")
-	}
-	return f.Storage.Put(c, key, r)
-}
-
 func TestFailedSealLosesNothing(t *testing.T) {
-	fs := &flakyStorage{Storage: newLocal(t)}
-	fs.failures.Store(2)
-	b, _ := NewBuffer(Config{Storage: fs, MaxBytes: 1 << 30, MaxAge: time.Hour})
+	mem := storagetest.NewMem()
+	mem.FailNextPuts(2)
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 1 << 30, MaxAge: time.Hour})
 
 	b.Add(ctx, segment.Entry{Timestamp: 1, Message: "a"})
 	b.Add(ctx, segment.Entry{Timestamp: 2, Message: "b"})
@@ -238,14 +223,14 @@ func TestFailedSealLosesNothing(t *testing.T) {
 	if err := b.Close(ctx); err != nil { // storage has recovered
 		t.Fatal(err)
 	}
-	es, _ := readAll(t, fs.Storage)
+	es, _ := readAll(t, mem)
 	if got := messages(es); len(got) != 3 || got[0] != "a" || got[1] != "b" || got[2] != "c" {
 		t.Fatalf("entries after recovery: %v", got)
 	}
 }
 
 func TestOnSealErrorDeletesSegmentAndKeepsEntries(t *testing.T) {
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	var fail atomic.Bool
 	fail.Store(true)
 	b, _ := NewBuffer(Config{
@@ -274,10 +259,86 @@ func TestOnSealErrorDeletesSegmentAndKeepsEntries(t *testing.T) {
 	}
 }
 
+// recorder is an OnSeal hook that remembers which segments were recorded
+// (what the manifest will do in Phase 3). Only recorded segments count as data.
+type recorder struct {
+	mu   sync.Mutex
+	keys []string
+	// failFirst makes the first n calls fail.
+	failFirst int
+}
+
+func (r *recorder) onSeal(ss SealedSegment) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.failFirst > 0 {
+		r.failFirst--
+		return errors.New("manifest down")
+	}
+	r.keys = append(r.keys, ss.Key)
+	return nil
+}
+
+// The upload succeeded but the caller was told it failed (think: a network
+// timeout after S3 stored the object). The buffer retries, so the data is
+// stored twice, but only the retry was recorded, so each entry is visible
+// exactly once. The first copy is an unrecorded orphan.
+func TestPutThatStoredButReportedFailureIsNotDuplicated(t *testing.T) {
+	mem := storagetest.NewMem()
+	mem.FailNextPutsAfterStoring(1)
+	rec := &recorder{}
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 1 << 30, MaxAge: time.Hour, OnSeal: rec.onSeal})
+
+	b.Add(ctx, segment.Entry{Timestamp: 1, Message: "a"})
+	b.Add(ctx, segment.Entry{Timestamp: 2, Message: "b"})
+	if err := b.Flush(ctx); err == nil {
+		t.Fatal("expected the flush to report failure")
+	}
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := messages(readKeys(t, mem, rec.keys)); len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		t.Fatalf("recorded segments hold %v, want [a b] exactly once", got)
+	}
+	if _, n := readAll(t, mem); n != 2 {
+		t.Fatalf("expected 1 recorded segment + 1 orphan in storage, found %d objects", n)
+	}
+}
+
+// The manifest rejects a segment, and cleaning up the stored file also fails.
+// The file is left behind as an orphan, but nothing is lost and nothing is
+// visible twice, because only the retried segment gets recorded.
+func TestOnSealFailureWithFailedCleanupLeavesOnlyAnOrphan(t *testing.T) {
+	mem := storagetest.NewMem()
+	mem.FailNextDeletes(1)
+	rec := &recorder{failFirst: 1}
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 1 << 30, MaxAge: time.Hour, OnSeal: rec.onSeal})
+
+	b.Add(ctx, segment.Entry{Timestamp: 1, Message: "a"})
+	b.Add(ctx, segment.Entry{Timestamp: 2, Message: "b"})
+	if err := b.Flush(ctx); err == nil {
+		t.Fatal("expected the flush to report failure")
+	}
+	if _, n := readAll(t, mem); n != 1 {
+		t.Fatalf("expected the undeleted orphan to remain, found %d objects", n)
+	}
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := messages(readKeys(t, mem, rec.keys)); len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		t.Fatalf("recorded segments hold %v, want [a b] exactly once", got)
+	}
+	if _, n := readAll(t, mem); n != 2 {
+		t.Fatalf("expected 1 recorded segment + 1 orphan, found %d objects", n)
+	}
+}
+
 func TestBufferFullWhenSealKeepsFailing(t *testing.T) {
-	fs := &flakyStorage{Storage: newLocal(t)}
-	fs.failures.Store(1 << 20) // never recovers
-	b, _ := NewBuffer(Config{Storage: fs, MaxBytes: 100, MaxAge: time.Hour})
+	mem := storagetest.NewMem()
+	mem.FailNextPuts(1 << 20) // never recovers
+	b, _ := NewBuffer(Config{Storage: mem, MaxBytes: 100, MaxAge: time.Hour})
 
 	var sawFull bool
 	for i := 0; i < 1000 && !sawFull; i++ {
@@ -296,7 +357,7 @@ func TestBufferFullWhenSealKeepsFailing(t *testing.T) {
 func TestConcurrentWriters(t *testing.T) {
 	const writers, perWriter = 16, 2000
 
-	s := newLocal(t)
+	s := storagetest.NewMem()
 	var (
 		mu     sync.Mutex
 		sealed []SealedSegment
@@ -378,4 +439,46 @@ func TestConcurrentWriters(t *testing.T) {
 	if nSegs < 10 {
 		t.Fatalf("only %d segments: thresholds were not exercised", nSegs)
 	}
+}
+
+// TestSealToS3 runs the real ingest path against an S3-compatible server
+// (skipped if none is running): many writers, both triggers, then every
+// entry must be readable from the bucket exactly once.
+func TestSealToS3(t *testing.T) {
+	s := storagetest.NewS3(t)
+	b, err := NewBuffer(Config{Storage: s, MaxBytes: 8 << 10, MaxAge: 20 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const writers, perWriter = 4, 250
+	var wg sync.WaitGroup
+	for w := 0; w < writers; w++ {
+		wg.Add(1)
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; i < perWriter; i++ {
+				e := segment.Entry{Timestamp: int64(i), Message: fmt.Sprintf("w%d-l%04d log text over s3", w, i)}
+				if err := b.Add(ctx, e); err != nil {
+					t.Errorf("add: %v", err)
+					return
+				}
+			}
+		}(w)
+	}
+	wg.Wait()
+	if err := b.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	es, n := readAll(t, s)
+	if len(es) != writers*perWriter {
+		t.Fatalf("want %d entries, got %d", writers*perWriter, len(es))
+	}
+	seen := map[string]bool{}
+	for _, e := range es {
+		if seen[e.Message] {
+			t.Fatalf("duplicate %q", e.Message)
+		}
+		seen[e.Message] = true
+	}
+	t.Logf("%d entries in %d segments on S3", len(es), n)
 }

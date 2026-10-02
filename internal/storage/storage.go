@@ -9,7 +9,9 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 )
 
 // ErrNotFound is returned by Get when the key does not exist.
@@ -37,4 +39,20 @@ type Storage interface {
 	// Delete removes the object. Deleting a missing key is not an error
 	// (S3 behaves the same way), which makes retries and crash recovery simple.
 	Delete(ctx context.Context, key string) error
+}
+
+// ValidateKey rejects keys that are unsafe or ambiguous ("", "..", "a//b",
+// NUL or backslash characters). Every implementation applies the same rules
+// so code that works against one backend works against all of them, including
+// the in-memory fake used in tests.
+func ValidateKey(key string) error {
+	if key == "" || strings.ContainsRune(key, 0) || strings.ContainsRune(key, '\\') {
+		return fmt.Errorf("%w: %q", ErrInvalidKey, key)
+	}
+	for _, part := range strings.Split(key, "/") {
+		if part == "" || part == "." || part == ".." {
+			return fmt.Errorf("%w: %q", ErrInvalidKey, key)
+		}
+	}
+	return nil
 }

@@ -1,0 +1,23 @@
+# Local object storage for development. Strata talks to it over the S3 API,
+# the same way it talks to a real S3/R2 bucket in production.
+#
+#   docker compose up -d       start it
+#   docker compose down        stop it (data is kept in the named volume)
+#   docker compose down -v     stop it and delete the data
+#
+# S3 API:  http://localhost:9000    Web console: http://localhost:9001
+# The credentials below are for local development only.
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.0 # pinned on purpose: no surprise upgrades
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ACCESS_KEY: ${STRATA_S3_ACCESS_KEY:-strata-dev}
+      RUSTFS_SECRET_KEY: ${STRATA_S3_SECRET_KEY:-strata-dev-secret}
+    volumes:
+      - rustfs-data:/data
+
+volumes:
+  rustfs-data:
