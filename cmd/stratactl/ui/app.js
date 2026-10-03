@@ -120,7 +120,7 @@ function render(r) {
   body.replaceChildren();
   for (const h of r.hits) {
     const tr = document.createElement('tr');
-    for (const [cls, text] of [['time', h.time], ['msg', h.message], ['tags', Object.entries(h.tags || {}).map(([k, v]) => k + '=' + v).join(' ')]]) {
+    for (const [cls, text] of [['ts', h.time], ['msg', h.message], ['tags', Object.entries(h.tags || {}).map(([k, v]) => k + '=' + v).join(' ')]]) {
       const td = document.createElement('td');
       td.className = cls;
       td.textContent = text;
@@ -178,6 +178,7 @@ function drawStrip(r, m, total) {
   // Bars are at least 1px wide with a 1px gap; when that doesn't fit the strip
   // (hundreds of segments, or a phone), drop the gaps so nothing overflows.
   strip.classList.toggle('dense', segs.length * 2 > strip.clientWidth);
+  strip.classList.toggle('flat', !segs.some(s => s.kind === 'scanned'));
   let order = 0;
   for (const s of segs) {
     const bar = document.createElement('i');

@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -281,5 +282,41 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 	json.Unmarshal(rec.Body.Bytes(), &raw)
 	if string(raw["segments"]) != "[]" || string(raw["segments_truncated"]) != "true" {
 		t.Fatalf("segments=%s truncated=%s", raw["segments"], raw["segments_truncated"])
+	}
+}
+
+// Regression test for a bug that shipped: the legend's colour classes (.time,
+// .bloom, .scanned) were bare selectors, so the results table's timestamp cell
+// (also class "time") inherited a grey background and 3:1 text. The colours
+// must only apply to the legend swatches, and the table cells must use classes
+// that no bare rule styles.
+func TestLegendColoursDoNotLeakOntoTableCells(t *testing.T) {
+	css, err := os.ReadFile("ui/style.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	js, err := os.ReadFile("ui/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bare := regexp.MustCompile(`(?m)(^|[},])\s*\.(time|bloom|scanned)\s*[{,]`)
+	if m := bare.Find(css); m != nil {
+		t.Fatalf("a bare %q rule would colour every element with that class, including table cells; scope it (.swatch.time)", strings.TrimSpace(string(m)))
+	}
+	// The classes given to result cells in app.js...
+	cells := regexp.MustCompile(`\['(\w+)', h\.|\['(\w+)', h\.message|\['(\w+)', Object`).FindAllStringSubmatch(string(js), -1)
+	if len(cells) < 3 {
+		t.Fatalf("could not find the table cell classes in app.js (%v); update this test with the code", cells)
+	}
+	for _, m := range cells {
+		for _, name := range m[1:] {
+			if name == "" {
+				continue
+			}
+			// ...must not be styled by a bare class rule that the legend or bar also uses.
+			if name == "time" || name == "bloom" || name == "scanned" {
+				t.Errorf("table cells use class %q, which the legend/bar also use", name)
+			}
+		}
 	}
 }

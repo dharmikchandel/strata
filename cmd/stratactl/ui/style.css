@@ -1,25 +1,42 @@
 :root {
   --bg: #fafaf7; --fg: #1d2021; --muted: #6b6f72; --line: #e2e1da; --card: #ffffff;
   --time: #c9c8bf; --bloom: #6f9bd1; --scanned: #e08a2e; --accent: #1f5f8b; --error: #a8321f;
+  color-scheme: light dark; /* date picker, scrollbars and form controls follow the theme too */
+  accent-color: var(--accent);
+  scrollbar-color: var(--muted) var(--bg);
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #16181a; --fg: #e8e6df; --muted: #9a9d9f; --line: #2b2f32; --card: #1d2023;
           --time: #4a4d4f; --bloom: #5b88bf; --scanned: #e39a4a; --accent: #7fb2dd; --error: #ff8a75; }
 }
 * { box-sizing: border-box; }
+::selection { background: var(--accent); color: var(--bg); }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
 main { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
 h2 { font-size: 1rem; margin: 0 0 .5rem; }
 .lede { margin: 0 0 1.25rem; color: var(--muted); }
-form { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin-bottom: 1.25rem; }
-label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; color: var(--muted); }
-input { font: inherit; padding: .4rem .5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); }
-input[name=text] { width: 16rem; } input[name=tag] { width: 10rem; } input[name=limit] { width: 5rem; }
+form { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.1fr) minmax(0, 1.8fr) minmax(0, 1.8fr) 5rem auto; gap: .75rem; align-items: end; margin-bottom: 1.25rem; }
+label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; color: var(--muted); min-width: 0; }
+/* 16px: smaller text makes iOS zoom the page on focus. Same height for every
+   control so the row lines up (date inputs are taller by default). */
+input { font: inherit; font-size: 1rem; height: 2.5rem; width: 100%; padding: .4rem .5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); caret-color: var(--accent); }
+input::placeholder { color: var(--muted); opacity: 1; } /* the browser default fails contrast in dark mode */
 button { font: inherit; padding: .45rem 1.1rem; border: 0; border-radius: 6px; background: var(--accent); color: var(--bg); cursor: pointer; }
+#submit { height: 2.5rem; }
+#submit:hover:not([disabled]) { background: color-mix(in srgb, var(--accent) 85%, var(--fg)); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 62rem) {
+  form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  label:first-child { grid-column: 1 / -1; }
+  #submit { grid-column: 1 / -1; }
+}
+@media (max-width: 40rem) {
+  form { grid-template-columns: 1fr; }
+  input, #submit { height: 2.75rem; } /* a comfortable touch target */
+}
 #metrics { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; }
-.time { background: var(--time); } .bloom { background: var(--bloom); } .scanned { background: var(--scanned); }
+.swatch.time { background: var(--time); } .swatch.bloom { background: var(--bloom); } .swatch.scanned { background: var(--scanned); }
 #legend { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; list-style: none; padding: 0; margin: .6rem 0 0; font-size: .85rem; }
 .swatch { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; vertical-align: -1px; }
 #summary { margin: .6rem 0 0; color: var(--muted); font-size: .85rem; }
@@ -28,8 +45,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 td.msg { font-family: ui-monospace, monospace; word-break: break-word; }
-td.time, td.tags { white-space: nowrap; color: var(--muted); font-family: ui-monospace, monospace; }
-@media (max-width: 40rem) { input[name=text] { width: 100%; } th:nth-child(3), td.tags { display: none; } }
+td.ts, td.tags { white-space: nowrap; color: var(--muted); font-family: ui-monospace, monospace; }
+@media (max-width: 40rem) { th:nth-child(3), td.tags { display: none; } }
 
 /* ---- first view: corpus line, examples, footer ---- */
 .lede { max-width: 62ch; }
@@ -50,7 +67,7 @@ td.time, td.tags { white-space: nowrap; color: var(--muted); font-family: ui-mon
 .form-hint { margin: -.75rem 0 1.25rem; color: var(--muted); font-size: .8rem; }
 button[disabled] { opacity: .6; cursor: progress; }
 .explain { margin: .75rem 0 0; font-size: .85rem; }
-.explain summary { color: var(--accent); cursor: pointer; width: fit-content; }
+.explain summary { color: var(--accent); cursor: pointer; width: fit-content; padding: .7rem 0; }
 .explain summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .explain dl { margin: .5rem 0 0; display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; }
 .explain dt { font-weight: 600; }
@@ -78,6 +95,7 @@ footer a { color: var(--accent); text-underline-offset: 3px; }
    like a flat line with a few spikes. */
 #strip { --h-skip: .7rem; --h-read: 3.2rem; --rise-from: .22; display: flex; align-items: flex-end; gap: 1px; height: var(--h-read); }
 #strip.dense { gap: 0; }
+#strip.flat { height: var(--h-skip); } /* nothing was read: no room reserved for tall bars */
 #strip > i { display: block; flex: 1 1 0; min-width: 1px; max-width: 2.4rem; height: var(--h-skip); border-radius: 1px 1px 0 0; }
 #strip > i.seg-time { background: var(--time); }
 #strip > i.seg-bloom { background: var(--bloom); }
@@ -94,7 +112,9 @@ footer a { color: var(--accent); text-underline-offset: 3px; }
 #strip-box { max-width: max(12rem, calc(var(--n, 1000) * 2.45rem)); }
 #strip-axis { display: flex; justify-content: space-between; gap: 1rem; margin: .35rem 0 0; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 #strip-note { margin: .25rem 0 0; font-size: .75rem; color: var(--muted); }
-#legend li.zero { opacity: .45; }
+#legend li.zero { color: var(--muted); }
+#legend li.zero b { font-weight: 400; }
+#legend li.zero .swatch { opacity: .45; }
 #read-table { width: 100%; margin-top: .5rem; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 #read-table th, #read-table td { padding: .2rem .5rem .2rem 0; border-bottom: 1px solid var(--line); text-align: left; }
 #read-table td.num { white-space: nowrap; }
