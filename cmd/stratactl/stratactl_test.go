@@ -25,9 +25,21 @@ import (
 )
 
 type stubSearcher struct {
-	req  *stratav1.SearchRequest
-	resp *stratav1.SearchResponse
-	err  error
+	req   *stratav1.SearchRequest
+	resp  *stratav1.SearchResponse
+	err   error
+	stats *stratav1.StatsResponse
+	sErr  error
+}
+
+func (s *stubSearcher) Stats(_ context.Context, _ *stratav1.StatsRequest, _ ...grpc.CallOption) (*stratav1.StatsResponse, error) {
+	if s.sErr != nil {
+		return nil, s.sErr
+	}
+	if s.stats == nil {
+		return &stratav1.StatsResponse{}, nil
+	}
+	return s.stats, nil
 }
 
 func (s *stubSearcher) Search(_ context.Context, in *stratav1.SearchRequest, _ ...grpc.CallOption) (*stratav1.SearchResponse, error) {
@@ -48,8 +60,14 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 		Hits: []*stratav1.SearchHit{{TimestampUnixNano: time.Date(2005, 6, 3, 15, 42, 50, 123456000, time.UTC).UnixNano(),
 			Message: "<script>alert(1)</script> parity error", Tags: map[string]string{"level": "INFO"}, SegmentId: "seg1"}},
 		Metrics: &stratav1.SearchMetrics{SegmentsConsidered: 10, SkippedByTime: 6, SkippedByBloom: 3, SegmentsScanned: 1, BytesRead: 2048, ServerMicros: 1500},
+		Segments: []*stratav1.SegmentOutcome{
+			{Kind: stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME, SegmentId: "old", MinUnixNano: time.Date(2005, 6, 3, 15, 42, 50, 0, time.UTC).UnixNano(), MaxUnixNano: time.Date(2005, 6, 4, 1, 2, 3, 0, time.UTC).UnixNano(), SizeBytes: 1000},
+			{Kind: stratav1.SegmentOutcome_KIND_SKIPPED_BY_BLOOM, SegmentId: "mid", SizeBytes: 2000},
+			{Kind: stratav1.SegmentOutcome_KIND_SCANNED, SegmentId: "hit", SizeBytes: 2048, BytesRead: 2048, Hits: 1},
+			{Kind: stratav1.SegmentOutcome_KIND_UNSPECIFIED, SegmentId: "from-a-newer-server"},
+		},
 	}}
-	h, err := newUIHandler(stub)
+	h, err := newUIHandler(stub, uiOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +91,19 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 	if out.Metrics["segments_scanned"] != 1 || out.Metrics["skipped_by_bloom"] != 3 || out.Metrics["bytes_read"] != 2048 {
 		t.Fatalf("metrics: %v", out.Metrics)
 	}
+	// Per-segment results: oldest first as sent, kinds translated for the page,
+	// times formatted in UTC, and an outcome kind this page doesn't know is dropped
+	// rather than drawn as something it is not.
+	if len(out.Segments) != 3 || out.SegmentsTruncated {
+		t.Fatalf("segments: %+v", out.Segments)
+	}
+	kinds := []string{out.Segments[0].Kind, out.Segments[1].Kind, out.Segments[2].Kind}
+	if fmt.Sprint(kinds) != "[time bloom scanned]" || out.Segments[0].First != "2005-06-03 15:42" || out.Segments[0].Last != "2005-06-04 01:02" {
+		t.Fatalf("segment mapping: %+v", out.Segments)
+	}
+	if s := out.Segments[2]; s.ID != "hit" || s.BytesRead != 2048 || s.Hits != 1 || s.Size != 2048 {
+		t.Fatalf("scanned segment: %+v", s)
+	}
 	// The hostile message travels as data inside JSON; the page inserts it as text.
 	if !strings.Contains(out.Hits[0].Message, "<script>") {
 		t.Fatal("message was altered")
@@ -84,7 +115,7 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 
 func TestUIDefaultsAndValidation(t *testing.T) {
 	stub := &stubSearcher{resp: &stratav1.SearchResponse{}}
-	h, _ := newUIHandler(stub)
+	h, _ := newUIHandler(stub, uiOptions{})
 	if rec := get(t, h, "/api/search?text=x"); rec.Code != 200 || stub.req.Limit != 100 {
 		t.Fatalf("defaults: status %d limit %d", rec.Code, stub.req.Limit)
 	}
@@ -116,7 +147,7 @@ func TestUIMapsServerErrorsToSafeHTTPErrors(t *testing.T) {
 		{errors.New("plain error"), 502, "plain error"},
 	}
 	for _, c := range cases {
-		h, _ := newUIHandler(&stubSearcher{err: c.err})
+		h, _ := newUIHandler(&stubSearcher{err: c.err}, uiOptions{})
 		rec := get(t, h, "/api/search?text=x")
 		if rec.Code != c.want {
 			t.Errorf("%v: status %d, want %d", c.err, rec.Code, c.want)
@@ -128,7 +159,7 @@ func TestUIMapsServerErrorsToSafeHTTPErrors(t *testing.T) {
 }
 
 func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
-	h, _ := newUIHandler(&stubSearcher{})
+	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
 	for _, path := range []string{"/", "/app.js", "/style.css"} {
 		rec := get(t, h, path)
 		if rec.Code != 200 {
@@ -213,7 +244,7 @@ func TestIngestCommandThenSearchThroughTheUI(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	h, _ := newUIHandler(stratav1.NewQueryServiceClient(conn))
+	h, _ := newUIHandler(stratav1.NewQueryServiceClient(conn), uiOptions{})
 	deadline := time.Now().Add(5 * time.Second)
 	var out searchJSON
 	for {
@@ -233,5 +264,22 @@ func TestIngestCommandThenSearchThroughTheUI(t *testing.T) {
 	}
 	if err := runIngest([]string{"-addr", srv.Addr().String(), "-format", "nonsense"}); err == nil {
 		t.Error("bad -format accepted")
+	}
+}
+
+// When the server leaves the segment list out (too many segments), the page
+// gets an empty list, never null, plus the flag that tells it to fall back to
+// the summary counts.
+func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
+	stub := &stubSearcher{resp: &stratav1.SearchResponse{
+		SegmentsTruncated: true,
+		Metrics:           &stratav1.SearchMetrics{SegmentsConsidered: 5000, SkippedByBloom: 4999, SegmentsScanned: 1},
+	}}
+	h, _ := newUIHandler(stub, uiOptions{})
+	rec := get(t, h, "/api/search?text=x")
+	var raw map[string]json.RawMessage
+	json.Unmarshal(rec.Body.Bytes(), &raw)
+	if string(raw["segments"]) != "[]" || string(raw["segments_truncated"]) != "true" {
+		t.Fatalf("segments=%s truncated=%s", raw["segments"], raw["segments_truncated"])
 	}
 }

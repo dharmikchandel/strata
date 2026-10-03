@@ -21,6 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SegmentOutcome_Kind int32
+
+const (
+	SegmentOutcome_KIND_UNSPECIFIED SegmentOutcome_Kind = 0
+	// Ruled out because its time range misses the query's.
+	SegmentOutcome_KIND_SKIPPED_BY_TIME SegmentOutcome_Kind = 1
+	// Ruled out because a query word is definitely not in it.
+	SegmentOutcome_KIND_SKIPPED_BY_BLOOM SegmentOutcome_Kind = 2
+	// Fetched from object storage and searched.
+	SegmentOutcome_KIND_SCANNED SegmentOutcome_Kind = 3
+)
+
+// Enum value maps for SegmentOutcome_Kind.
+var (
+	SegmentOutcome_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_SKIPPED_BY_TIME",
+		2: "KIND_SKIPPED_BY_BLOOM",
+		3: "KIND_SCANNED",
+	}
+	SegmentOutcome_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED":      0,
+		"KIND_SKIPPED_BY_TIME":  1,
+		"KIND_SKIPPED_BY_BLOOM": 2,
+		"KIND_SCANNED":          3,
+	}
+)
+
+func (x SegmentOutcome_Kind) Enum() *SegmentOutcome_Kind {
+	p := new(SegmentOutcome_Kind)
+	*p = x
+	return p
+}
+
+func (x SegmentOutcome_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SegmentOutcome_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_strata_v1_query_proto_enumTypes[0].Descriptor()
+}
+
+func (SegmentOutcome_Kind) Type() protoreflect.EnumType {
+	return &file_strata_v1_query_proto_enumTypes[0]
+}
+
+func (x SegmentOutcome_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SegmentOutcome_Kind.Descriptor instead.
+func (SegmentOutcome_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{4, 0}
+}
+
 type SearchRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Full-text search on the message. A line matches only if it contains ALL
@@ -279,10 +334,16 @@ type SearchResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Hits  []*SearchHit           `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
 	// True if more lines matched than the limit allowed.
-	Truncated     bool           `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
-	Metrics       *SearchMetrics `protobuf:"bytes,3,opt,name=metrics,proto3" json:"metrics,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Truncated bool           `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	Metrics   *SearchMetrics `protobuf:"bytes,3,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	// What happened to every segment, oldest first, so a client can draw the
+	// search as it happened. Empty when there are more segments than the server
+	// is willing to list (see segments_truncated); the counts in metrics are
+	// always complete.
+	Segments          []*SegmentOutcome `protobuf:"bytes,4,rep,name=segments,proto3" json:"segments,omitempty"`
+	SegmentsTruncated bool              `protobuf:"varint,5,opt,name=segments_truncated,json=segmentsTruncated,proto3" json:"segments_truncated,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SearchResponse) Reset() {
@@ -336,6 +397,234 @@ func (x *SearchResponse) GetMetrics() *SearchMetrics {
 	return nil
 }
 
+func (x *SearchResponse) GetSegments() []*SegmentOutcome {
+	if x != nil {
+		return x.Segments
+	}
+	return nil
+}
+
+func (x *SearchResponse) GetSegmentsTruncated() bool {
+	if x != nil {
+		return x.SegmentsTruncated
+	}
+	return false
+}
+
+// What one search did with one segment.
+type SegmentOutcome struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Kind      SegmentOutcome_Kind    `protobuf:"varint,1,opt,name=kind,proto3,enum=strata.v1.SegmentOutcome_Kind" json:"kind,omitempty"`
+	SegmentId string                 `protobuf:"bytes,2,opt,name=segment_id,json=segmentId,proto3" json:"segment_id,omitempty"`
+	// The segment's first and last log time, in nanoseconds since the Unix epoch.
+	MinUnixNano int64 `protobuf:"varint,3,opt,name=min_unix_nano,json=minUnixNano,proto3" json:"min_unix_nano,omitempty"`
+	MaxUnixNano int64 `protobuf:"varint,4,opt,name=max_unix_nano,json=maxUnixNano,proto3" json:"max_unix_nano,omitempty"`
+	// Size of the segment file.
+	SizeBytes uint64 `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// Bytes fetched: the whole file for a scanned segment, zero otherwise.
+	BytesRead uint64 `protobuf:"varint,6,opt,name=bytes_read,json=bytesRead,proto3" json:"bytes_read,omitempty"`
+	// How many of the returned lines came from this segment.
+	Hits          uint32 `protobuf:"varint,7,opt,name=hits,proto3" json:"hits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SegmentOutcome) Reset() {
+	*x = SegmentOutcome{}
+	mi := &file_strata_v1_query_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SegmentOutcome) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SegmentOutcome) ProtoMessage() {}
+
+func (x *SegmentOutcome) ProtoReflect() protoreflect.Message {
+	mi := &file_strata_v1_query_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SegmentOutcome.ProtoReflect.Descriptor instead.
+func (*SegmentOutcome) Descriptor() ([]byte, []int) {
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SegmentOutcome) GetKind() SegmentOutcome_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return SegmentOutcome_KIND_UNSPECIFIED
+}
+
+func (x *SegmentOutcome) GetSegmentId() string {
+	if x != nil {
+		return x.SegmentId
+	}
+	return ""
+}
+
+func (x *SegmentOutcome) GetMinUnixNano() int64 {
+	if x != nil {
+		return x.MinUnixNano
+	}
+	return 0
+}
+
+func (x *SegmentOutcome) GetMaxUnixNano() int64 {
+	if x != nil {
+		return x.MaxUnixNano
+	}
+	return 0
+}
+
+func (x *SegmentOutcome) GetSizeBytes() uint64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *SegmentOutcome) GetBytesRead() uint64 {
+	if x != nil {
+		return x.BytesRead
+	}
+	return 0
+}
+
+func (x *SegmentOutcome) GetHits() uint32 {
+	if x != nil {
+		return x.Hits
+	}
+	return 0
+}
+
+type StatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatsRequest) Reset() {
+	*x = StatsRequest{}
+	mi := &file_strata_v1_query_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsRequest) ProtoMessage() {}
+
+func (x *StatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_strata_v1_query_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsRequest.ProtoReflect.Descriptor instead.
+func (*StatsRequest) Descriptor() ([]byte, []int) {
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{5}
+}
+
+type StatsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Active segments (the ones searches can see).
+	Segments uint32 `protobuf:"varint,1,opt,name=segments,proto3" json:"segments,omitempty"`
+	// Total log lines across them.
+	Entries uint64 `protobuf:"varint,2,opt,name=entries,proto3" json:"entries,omitempty"`
+	// Total size of the segment files, in bytes.
+	StoredBytes uint64 `protobuf:"varint,3,opt,name=stored_bytes,json=storedBytes,proto3" json:"stored_bytes,omitempty"`
+	// Earliest and latest log timestamps, in nanoseconds since the Unix epoch.
+	// Both are zero when nothing is stored yet.
+	MinUnixNano   int64 `protobuf:"varint,4,opt,name=min_unix_nano,json=minUnixNano,proto3" json:"min_unix_nano,omitempty"`
+	MaxUnixNano   int64 `protobuf:"varint,5,opt,name=max_unix_nano,json=maxUnixNano,proto3" json:"max_unix_nano,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatsResponse) Reset() {
+	*x = StatsResponse{}
+	mi := &file_strata_v1_query_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsResponse) ProtoMessage() {}
+
+func (x *StatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_strata_v1_query_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsResponse.ProtoReflect.Descriptor instead.
+func (*StatsResponse) Descriptor() ([]byte, []int) {
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *StatsResponse) GetSegments() uint32 {
+	if x != nil {
+		return x.Segments
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetEntries() uint64 {
+	if x != nil {
+		return x.Entries
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetStoredBytes() uint64 {
+	if x != nil {
+		return x.StoredBytes
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetMinUnixNano() int64 {
+	if x != nil {
+		return x.MinUnixNano
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetMaxUnixNano() int64 {
+	if x != nil {
+		return x.MaxUnixNano
+	}
+	return 0
+}
+
 var File_strata_v1_query_proto protoreflect.FileDescriptor
 
 const file_strata_v1_query_proto_rawDesc = "" +
@@ -368,13 +657,39 @@ const file_strata_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"bytes_read\x18\x05 \x01(\x04R\tbytesRead\x12\x18\n" +
 	"\aretries\x18\x06 \x01(\rR\aretries\x12#\n" +
-	"\rserver_micros\x18\a \x01(\x04R\fserverMicros\"\x8c\x01\n" +
+	"\rserver_micros\x18\a \x01(\x04R\fserverMicros\"\xf2\x01\n" +
 	"\x0eSearchResponse\x12(\n" +
 	"\x04hits\x18\x01 \x03(\v2\x14.strata.v1.SearchHitR\x04hits\x12\x1c\n" +
 	"\ttruncated\x18\x02 \x01(\bR\ttruncated\x122\n" +
-	"\ametrics\x18\x03 \x01(\v2\x18.strata.v1.SearchMetricsR\ametrics2M\n" +
+	"\ametrics\x18\x03 \x01(\v2\x18.strata.v1.SearchMetricsR\ametrics\x125\n" +
+	"\bsegments\x18\x04 \x03(\v2\x19.strata.v1.SegmentOutcomeR\bsegments\x12-\n" +
+	"\x12segments_truncated\x18\x05 \x01(\bR\x11segmentsTruncated\"\xe2\x02\n" +
+	"\x0eSegmentOutcome\x122\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x1e.strata.v1.SegmentOutcome.KindR\x04kind\x12\x1d\n" +
+	"\n" +
+	"segment_id\x18\x02 \x01(\tR\tsegmentId\x12\"\n" +
+	"\rmin_unix_nano\x18\x03 \x01(\x03R\vminUnixNano\x12\"\n" +
+	"\rmax_unix_nano\x18\x04 \x01(\x03R\vmaxUnixNano\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x05 \x01(\x04R\tsizeBytes\x12\x1d\n" +
+	"\n" +
+	"bytes_read\x18\x06 \x01(\x04R\tbytesRead\x12\x12\n" +
+	"\x04hits\x18\a \x01(\rR\x04hits\"c\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14KIND_SKIPPED_BY_TIME\x10\x01\x12\x19\n" +
+	"\x15KIND_SKIPPED_BY_BLOOM\x10\x02\x12\x10\n" +
+	"\fKIND_SCANNED\x10\x03\"\x0e\n" +
+	"\fStatsRequest\"\xb0\x01\n" +
+	"\rStatsResponse\x12\x1a\n" +
+	"\bsegments\x18\x01 \x01(\rR\bsegments\x12\x18\n" +
+	"\aentries\x18\x02 \x01(\x04R\aentries\x12!\n" +
+	"\fstored_bytes\x18\x03 \x01(\x04R\vstoredBytes\x12\"\n" +
+	"\rmin_unix_nano\x18\x04 \x01(\x03R\vminUnixNano\x12\"\n" +
+	"\rmax_unix_nano\x18\x05 \x01(\x03R\vmaxUnixNano2\x89\x01\n" +
 	"\fQueryService\x12=\n" +
-	"\x06Search\x12\x18.strata.v1.SearchRequest\x1a\x19.strata.v1.SearchResponseB9Z7github.com/dharmikchandel/strata/gen/strata/v1;stratav1b\x06proto3"
+	"\x06Search\x12\x18.strata.v1.SearchRequest\x1a\x19.strata.v1.SearchResponse\x12:\n" +
+	"\x05Stats\x12\x17.strata.v1.StatsRequest\x1a\x18.strata.v1.StatsResponseB9Z7github.com/dharmikchandel/strata/gen/strata/v1;stratav1b\x06proto3"
 
 var (
 	file_strata_v1_query_proto_rawDescOnce sync.Once
@@ -388,27 +703,36 @@ func file_strata_v1_query_proto_rawDescGZIP() []byte {
 	return file_strata_v1_query_proto_rawDescData
 }
 
-var file_strata_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_strata_v1_query_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_strata_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_strata_v1_query_proto_goTypes = []any{
-	(*SearchRequest)(nil),  // 0: strata.v1.SearchRequest
-	(*SearchHit)(nil),      // 1: strata.v1.SearchHit
-	(*SearchMetrics)(nil),  // 2: strata.v1.SearchMetrics
-	(*SearchResponse)(nil), // 3: strata.v1.SearchResponse
-	nil,                    // 4: strata.v1.SearchRequest.TagsEntry
-	nil,                    // 5: strata.v1.SearchHit.TagsEntry
+	(SegmentOutcome_Kind)(0), // 0: strata.v1.SegmentOutcome.Kind
+	(*SearchRequest)(nil),    // 1: strata.v1.SearchRequest
+	(*SearchHit)(nil),        // 2: strata.v1.SearchHit
+	(*SearchMetrics)(nil),    // 3: strata.v1.SearchMetrics
+	(*SearchResponse)(nil),   // 4: strata.v1.SearchResponse
+	(*SegmentOutcome)(nil),   // 5: strata.v1.SegmentOutcome
+	(*StatsRequest)(nil),     // 6: strata.v1.StatsRequest
+	(*StatsResponse)(nil),    // 7: strata.v1.StatsResponse
+	nil,                      // 8: strata.v1.SearchRequest.TagsEntry
+	nil,                      // 9: strata.v1.SearchHit.TagsEntry
 }
 var file_strata_v1_query_proto_depIdxs = []int32{
-	4, // 0: strata.v1.SearchRequest.tags:type_name -> strata.v1.SearchRequest.TagsEntry
-	5, // 1: strata.v1.SearchHit.tags:type_name -> strata.v1.SearchHit.TagsEntry
-	1, // 2: strata.v1.SearchResponse.hits:type_name -> strata.v1.SearchHit
-	2, // 3: strata.v1.SearchResponse.metrics:type_name -> strata.v1.SearchMetrics
-	0, // 4: strata.v1.QueryService.Search:input_type -> strata.v1.SearchRequest
-	3, // 5: strata.v1.QueryService.Search:output_type -> strata.v1.SearchResponse
-	5, // [5:6] is the sub-list for method output_type
-	4, // [4:5] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	8, // 0: strata.v1.SearchRequest.tags:type_name -> strata.v1.SearchRequest.TagsEntry
+	9, // 1: strata.v1.SearchHit.tags:type_name -> strata.v1.SearchHit.TagsEntry
+	2, // 2: strata.v1.SearchResponse.hits:type_name -> strata.v1.SearchHit
+	3, // 3: strata.v1.SearchResponse.metrics:type_name -> strata.v1.SearchMetrics
+	5, // 4: strata.v1.SearchResponse.segments:type_name -> strata.v1.SegmentOutcome
+	0, // 5: strata.v1.SegmentOutcome.kind:type_name -> strata.v1.SegmentOutcome.Kind
+	1, // 6: strata.v1.QueryService.Search:input_type -> strata.v1.SearchRequest
+	6, // 7: strata.v1.QueryService.Stats:input_type -> strata.v1.StatsRequest
+	4, // 8: strata.v1.QueryService.Search:output_type -> strata.v1.SearchResponse
+	7, // 9: strata.v1.QueryService.Stats:output_type -> strata.v1.StatsResponse
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_strata_v1_query_proto_init() }
@@ -421,13 +745,14 @@ func file_strata_v1_query_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_strata_v1_query_proto_rawDesc), len(file_strata_v1_query_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      1,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_strata_v1_query_proto_goTypes,
 		DependencyIndexes: file_strata_v1_query_proto_depIdxs,
+		EnumInfos:         file_strata_v1_query_proto_enumTypes,
 		MessageInfos:      file_strata_v1_query_proto_msgTypes,
 	}.Build()
 	File_strata_v1_query_proto = out.File

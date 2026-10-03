@@ -565,3 +565,63 @@ func readAll(t *testing.T, s storage.Storage, key string) []byte {
 	}
 	return buf.Bytes()
 }
+
+// The per-segment outcomes must tell the same story as the summary counts, list
+// every segment oldest first, and attribute each returned line to its segment.
+func TestSegmentOutcomesMatchTheMetrics(t *testing.T) {
+	e := newEnv(t)
+	rows := e.timeSegments(10) // windows [i*1000, i*1000+99], word "seg<i>" only in segment i
+
+	cases := map[string]Query{
+		"time window":      {Text: "common", From: 3000, To: 5100, Limit: 1000},
+		"rare word":        {Text: "seg7"},
+		"everything":       {Text: "common", Limit: 1000},
+		"absent word":      {Text: "nonexistentterm"},
+		"time and word":    {Text: "seg7", From: 2000, To: 3000},
+		"limit cuts lines": {Text: "common", Limit: 150},
+	}
+	for name, q := range cases {
+		res := e.search(q)
+		if len(res.Segments) != res.Metrics.SegmentsConsidered || len(res.Segments) != 10 {
+			t.Fatalf("%s: %d outcomes for %d considered segments", name, len(res.Segments), res.Metrics.SegmentsConsidered)
+		}
+		var byTime, byBloom, scanned, bytes, hits int
+		for i, o := range res.Segments {
+			if o.ID != rows[i].ID || o.MinTS != rows[i].MinTS || o.MaxTS != rows[i].MaxTS || o.Size != rows[i].Size {
+				t.Fatalf("%s: outcome %d is not segment %s (oldest first): %+v", name, i, rows[i].ID, o)
+			}
+			switch o.Outcome {
+			case SkippedByTime:
+				byTime++
+			case SkippedByBloom:
+				byBloom++
+			case Scanned:
+				scanned++
+				bytes += int(o.BytesRead)
+				if o.BytesRead != o.Size {
+					t.Errorf("%s: scanned segment read %d of %d bytes (whole segments are fetched)", name, o.BytesRead, o.Size)
+				}
+			default:
+				t.Fatalf("%s: outcome %d has no kind", name, i)
+			}
+			if o.Outcome != Scanned && (o.BytesRead != 0 || o.Hits != 0) {
+				t.Errorf("%s: a skipped segment reports work: %+v", name, o)
+			}
+			hits += o.Hits
+		}
+		m := res.Metrics
+		if byTime != m.SkippedByTime || byBloom != m.SkippedByBloom || scanned != m.SegmentsScanned || int64(bytes) != m.BytesRead {
+			t.Errorf("%s: outcomes (%d/%d/%d, %d B) disagree with metrics %+v", name, byTime, byBloom, scanned, bytes, m)
+		}
+		if hits != len(res.Hits) {
+			t.Errorf("%s: outcomes attribute %d lines, the result has %d", name, hits, len(res.Hits))
+		}
+	}
+
+	// With a limit, the lines come from the earliest segments only: later
+	// segments were still read, but contributed nothing.
+	res := e.search(Query{Text: "common", Limit: 150})
+	if res.Segments[0].Hits != 100 || res.Segments[1].Hits != 50 || res.Segments[2].Hits != 0 || res.Segments[2].Outcome != Scanned {
+		t.Fatalf("attribution under a limit: %+v", res.Segments[:3])
+	}
+}

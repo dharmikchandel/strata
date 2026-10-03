@@ -58,6 +58,16 @@ go run ./cmd/stratactl search -text "error timeout" -limit 10
 go run ./cmd/stratactl ui
 ```
 
+The page opens with what is stored (lines, segments, time range), a few one-click example searches that each show a different way segments get skipped, and the search form. Every search is then drawn as it happened: one bar per segment, oldest to newest, short if the segment was skipped and tall if it was read, under a sentence such as "Skipped 193 of 196 segments. Read 3 (15.3 MiB)." A list below says which segments were read and how many of the lines shown each one supplied. Those extras are optional and come from flags, so the page carries no knowledge of any particular dataset. For the benchmark dataset:
+
+```sh
+go run ./cmd/stratactl ui \
+  -corpus-name "BGL supercomputer logs" \
+  -examples bench/demo/bgl-examples.json \
+  -credit "Data: BGL logs from the BlueGene/L supercomputer at Lawrence Livermore National Laboratory (Oliner and Stearley, DSN 2007), via LogHub." \
+  -about-url https://github.com/dharmikchandel/strata#readme
+```
+
 `stratactl search` prints the matching lines and then how much work the search did. This is a real search of the benchmark dataset (4.7 million lines in 73 segments); long lines are shortened here:
 
 ```

@@ -9,35 +9,72 @@
 <body>
   <main>
     <h1>Strata</h1>
-    <p class="lede">Search logs stored as immutable segments in object storage. The bar shows how many segments the search <em>didn't</em> have to read.</p>
+    <p class="lede">Strata keeps logs in immutable chunks called segments. Before reading anything, it rules out the segments that cannot contain your answer. The bar below each search shows how many it never had to open.</p>
+    <p id="corpus" class="corpus" hidden></p>
+
+    <section id="examples" class="examples" aria-labelledby="examples-title" hidden>
+      <h2 id="examples-title">Try a search</h2>
+      <ul id="example-list"></ul>
+    </section>
 
     <form id="form">
       <label>Words <input name="text" placeholder="e.g. parity error" autocomplete="off" autofocus></label>
-      <label>Tag <input name="tag" placeholder="level=FATAL" autocomplete="off"></label>
+      <label>Tags <input name="tag" placeholder="level=FATAL" autocomplete="off"></label>
       <label>From (UTC) <input name="from" type="datetime-local"></label>
       <label>To (UTC) <input name="to" type="datetime-local"></label>
       <label>Max lines <input name="limit" type="number" min="1" max="1000" value="50"></label>
-      <button type="submit">Search</button>
+      <button type="submit" id="submit">Search</button>
     </form>
-
-    <section id="metrics" hidden>
-      <h2>Work done</h2>
-      <div id="bar" role="img" aria-label="Segments skipped by time, skipped by bloom filter, and scanned"></div>
-      <ul id="legend">
-        <li><span class="swatch time"></span> skipped by time range <b id="m-time">0</b></li>
-        <li><span class="swatch bloom"></span> skipped by bloom filter <b id="m-bloom">0</b></li>
-        <li><span class="swatch scanned"></span> scanned <b id="m-scanned">0</b></li>
-      </ul>
-      <p id="summary"></p>
-    </section>
+    <p class="form-hint">A line matches when it contains every word, in any order. Separate several tags with spaces.</p>
 
     <p id="error" role="alert" hidden></p>
     <p id="status" aria-live="polite"></p>
-    <table id="results" hidden>
+
+    <section id="metrics" hidden>
+      <h2>What this search read</h2>
+      <p id="headline" aria-live="polite"></p>
+      <div id="strip-box">
+        <div id="strip" role="img" aria-label=""></div>
+        <p id="strip-axis"><span id="axis-first"></span><span id="axis-last"></span></p>
+      </div>
+      <p id="strip-note"></p>
+      <ul id="legend">
+        <li id="lg-time"><span class="swatch time"></span> skipped by time range <b id="m-time">0</b></li>
+        <li id="lg-bloom"><span class="swatch bloom"></span> skipped by bloom filter <b id="m-bloom">0</b></li>
+        <li id="lg-scanned"><span class="swatch scanned"></span> read <b id="m-scanned">0</b></li>
+      </ul>
+      <p id="summary"></p>
+      <details id="read-list" class="explain" hidden>
+        <summary id="read-summary">Which segments were read</summary>
+        <table id="read-table">
+          <thead><tr><th>Segment</th><th>Covers (UTC)</th><th>Size</th><th>Lines shown</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </details>
+      <details class="explain">
+        <summary>What do these mean?</summary>
+        <dl>
+          <dt>Segment</dt>
+          <dd>One immutable file holding a batch of log lines, with its own index and time range.</dd>
+          <dt>Skipped by time range</dt>
+          <dd>The segment's earliest and latest line fall outside the range you asked for, so it was ruled out from a small catalogue without being opened.</dd>
+          <dt>Skipped by bloom filter</dt>
+          <dd>A compact summary of every word in the segment said your word is definitely not in it. It can wrongly say "maybe" (costing one wasted read), never wrongly say "no".</dd>
+          <dt>Read</dt>
+          <dd>Downloaded and searched. This is the only cost that matters. Every segment is one bar in the strip, oldest on the left; a tall bar was read, a short one was skipped.</dd>
+        </dl>
+      </details>
+    </section>
+
+        <table id="results" hidden>
       <thead><tr><th>Time (UTC)</th><th>Message</th><th>Tags</th></tr></thead>
       <tbody></tbody>
     </table>
   </main>
+  <footer id="foot" hidden>
+    <span id="credit"></span>
+    <a id="about" href="#" hidden rel="noopener">How this works</a>
+  </footer>
   <script src="app.js"></script>
 </body>
 </html>

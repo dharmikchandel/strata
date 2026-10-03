@@ -89,6 +89,25 @@ func (m Metrics) String() string {
 		m.SegmentsConsidered, m.SkippedByTime, m.SkippedByBloom, m.SegmentsScanned, m.BytesRead, m.Retries, m.Latency)
 }
 
+// Outcome says what a search did with one segment.
+type Outcome int
+
+const (
+	SkippedByTime Outcome = iota + 1
+	SkippedByBloom
+	Scanned
+)
+
+// SegmentOutcome is the result of a search for one segment.
+type SegmentOutcome struct {
+	ID           string
+	MinTS, MaxTS int64
+	Size         int64
+	Outcome      Outcome
+	BytesRead    int64 // Scanned only
+	Hits         int   // lines from this segment in the final result
+}
+
 // Result is the answer to a Search.
 type Result struct {
 	// Hits are sorted by timestamp, ties broken by manifest order (segment
@@ -97,6 +116,8 @@ type Result struct {
 	// Truncated is true if more matches existed than Limit allowed.
 	Truncated bool
 	Metrics   Metrics
+	// Segments lists what happened to every active segment, oldest first.
+	Segments []SegmentOutcome
 }
 
 // Engine runs searches over a manifest and the segments it describes.
@@ -159,27 +180,34 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	terms := queryTerms(q)
 
 	var m Metrics
-	total, err := e.manifest.CountActive(ctx)
+	// One statement gives every active segment and whether it overlaps the time
+	// range (filter 1), plus the bloom filters of the ones that do. A single
+	// snapshot, so the counts below always add up even while compaction runs.
+	plan, err := e.manifest.Plan(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
-	m.SegmentsConsidered = total
-
-	// Filter 1: time range, from the manifest.
-	inRange, err := e.manifest.Overlapping(ctx, from, to)
-	if err != nil {
-		return nil, err
-	}
-	m.SkippedByTime = total - len(inRange)
+	m.SegmentsConsidered = len(plan)
 
 	// Filter 2: bloom filters, from the manifest. No storage reads yet.
+	outcomes := make([]SegmentOutcome, len(plan))
 	var candidates []manifest.Segment
-	for _, s := range inRange {
-		if !mayContainAll(s, terms) {
+	var candidateAt []int // index into outcomes of each candidate
+	for i, r := range plan {
+		o := SegmentOutcome{ID: r.ID, MinTS: r.MinTS, MaxTS: r.MaxTS, Size: r.Size}
+		switch {
+		case !r.InRange:
+			o.Outcome = SkippedByTime
+			m.SkippedByTime++
+		case !mayContainAll(r.Segment, terms):
+			o.Outcome = SkippedByBloom
 			m.SkippedByBloom++
-			continue
+		default:
+			o.Outcome = Scanned
+			candidates = append(candidates, r.Segment)
+			candidateAt = append(candidateAt, i)
 		}
-		candidates = append(candidates, s)
+		outcomes[i] = o
 	}
 
 	// Filter 3: fetch the survivors in parallel and search each one.
@@ -202,8 +230,9 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 		return nil, err
 	}
 	m.SegmentsScanned = len(candidates)
-	for _, n := range bytesRead {
+	for k, n := range bytesRead {
 		m.BytesRead += n
+		outcomes[candidateAt[k]].BytesRead = n
 	}
 
 	// Merge. Each segment's hits are already in timestamp order, and a stable
@@ -218,7 +247,15 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	if len(hits) > limit {
 		hits, truncated = hits[:limit], true
 	}
-	return &Result{Hits: hits, Truncated: truncated, Metrics: m}, nil
+	// Which segments the returned lines came from.
+	fromSegment := make(map[string]int, len(candidates))
+	for _, h := range hits {
+		fromSegment[h.SegmentID]++
+	}
+	for i := range outcomes {
+		outcomes[i].Hits = fromSegment[outcomes[i].ID]
+	}
+	return &Result{Hits: hits, Truncated: truncated, Metrics: m, Segments: outcomes}, nil
 }
 
 // scan fetches one segment and returns its matches (at most limit, earliest

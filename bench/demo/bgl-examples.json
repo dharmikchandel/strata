@@ -1,0 +1,22 @@
+[
+  {
+    "title": "A rare word",
+    "note": "Only a few segments mention it, so bloom filters rule out nearly all the others without opening them.",
+    "text": "hangtest",
+    "limit": 20
+  },
+  {
+    "title": "One hour of history",
+    "note": "A one-hour window rules out almost every segment by its time range before anything is read.",
+    "text": "error",
+    "from": "2005-06-20T13:00",
+    "to": "2005-06-20T14:00",
+    "limit": 20
+  },
+  {
+    "title": "A common word, all history",
+    "note": "Most segments contain it, so most are read. The slow case, on purpose.",
+    "text": "error",
+    "limit": 20
+  }
+]

@@ -186,3 +186,79 @@ func TestSearchRPCReportsDamagedData(t *testing.T) {
 		t.Fatalf("missing segment: want DataLoss, got %v", err)
 	}
 }
+
+func TestStatsRPC(t *testing.T) {
+	e := newEnv(t)
+	client := startQueryServer(t, e.eng, ServiceConfig{})
+
+	// Nothing stored yet: zeros, not an error.
+	empty, err := client.Stats(ctx, &stratav1.StatsRequest{})
+	if err != nil || empty.Segments != 0 || empty.Entries != 0 || empty.MinUnixNano != 0 || empty.MaxUnixNano != 0 {
+		t.Fatalf("empty: %+v %v", empty, err)
+	}
+
+	rows := e.timeSegments(4) // 4 segments x 100 lines, times 0..99, 1000..1099, ...
+	var size uint64
+	for _, r := range rows {
+		size += uint64(r.Size)
+	}
+	got, err := client.Stats(ctx, &stratav1.StatsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Segments != 4 || got.Entries != 400 || got.StoredBytes != size || got.MinUnixNano != 0 || got.MaxUnixNano != 3099 {
+		t.Fatalf("stats: %+v (want size %d)", got, size)
+	}
+}
+
+func TestSearchRPCListsWhatHappenedToEverySegment(t *testing.T) {
+	e := newEnv(t)
+	rows := e.timeSegments(6)
+	client := startQueryServer(t, e.eng, ServiceConfig{})
+
+	resp, err := client.Search(ctx, &stratav1.SearchRequest{Text: "common", FromUnixNano: 2000, ToUnixNano: 3100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.SegmentsTruncated || len(resp.Segments) != 6 {
+		t.Fatalf("truncated=%v, %d segments", resp.SegmentsTruncated, len(resp.Segments))
+	}
+	want := []stratav1.SegmentOutcome_Kind{
+		stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME, stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME,
+		stratav1.SegmentOutcome_KIND_SCANNED, stratav1.SegmentOutcome_KIND_SCANNED,
+		stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME, stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME,
+	}
+	var hits uint32
+	for i, o := range resp.Segments {
+		if o.Kind != want[i] || o.SegmentId != rows[i].ID || o.MinUnixNano != rows[i].MinTS || o.SizeBytes != uint64(rows[i].Size) {
+			t.Fatalf("segment %d: %+v", i, o)
+		}
+		hits += o.Hits
+	}
+	if int(hits) != len(resp.Hits) {
+		t.Fatalf("hits attributed %d, returned %d", hits, len(resp.Hits))
+	}
+}
+
+// With more segments than the server is willing to list, the list is left out
+// and flagged, while the summary counts stay complete.
+func TestSearchRPCOmitsAnOversizedSegmentList(t *testing.T) {
+	e := newEnv(t)
+	e.timeSegments(5)
+	client := startQueryServer(t, e.eng, ServiceConfig{MaxOutcomes: 3})
+	resp, err := client.Search(ctx, &stratav1.SearchRequest{Text: "common"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.SegmentsTruncated || len(resp.Segments) != 0 {
+		t.Fatalf("truncated=%v, %d segments listed", resp.SegmentsTruncated, len(resp.Segments))
+	}
+	if resp.Metrics.SegmentsConsidered != 5 || resp.Metrics.SegmentsScanned != 5 {
+		t.Fatalf("the counts must still be complete: %+v", resp.Metrics)
+	}
+	// Exactly at the cap is still listed.
+	client = startQueryServer(t, e.eng, ServiceConfig{MaxOutcomes: 5})
+	if resp, _ := client.Search(ctx, &stratav1.SearchRequest{Text: "common"}); resp.SegmentsTruncated || len(resp.Segments) != 5 {
+		t.Fatalf("at the cap: truncated=%v, %d listed", resp.SegmentsTruncated, len(resp.Segments))
+	}
+}

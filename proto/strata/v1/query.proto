@@ -9,6 +9,10 @@ service QueryService {
   // Search returns the earliest matching lines in timestamp order, plus
   // metrics describing how much work the search did.
   rpc Search(SearchRequest) returns (SearchResponse);
+
+  // Stats describes what is stored: how many lines, in how many segments, over
+  // what time range. It reads only the manifest, never object storage.
+  rpc Stats(StatsRequest) returns (StatsResponse);
 }
 
 message SearchRequest {
@@ -59,4 +63,49 @@ message SearchResponse {
   // True if more lines matched than the limit allowed.
   bool truncated = 2;
   SearchMetrics metrics = 3;
+  // What happened to every segment, oldest first, so a client can draw the
+  // search as it happened. Empty when there are more segments than the server
+  // is willing to list (see segments_truncated); the counts in metrics are
+  // always complete.
+  repeated SegmentOutcome segments = 4;
+  bool segments_truncated = 5;
+}
+
+// What one search did with one segment.
+message SegmentOutcome {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // Ruled out because its time range misses the query's.
+    KIND_SKIPPED_BY_TIME = 1;
+    // Ruled out because a query word is definitely not in it.
+    KIND_SKIPPED_BY_BLOOM = 2;
+    // Fetched from object storage and searched.
+    KIND_SCANNED = 3;
+  }
+  Kind kind = 1;
+  string segment_id = 2;
+  // The segment's first and last log time, in nanoseconds since the Unix epoch.
+  int64 min_unix_nano = 3;
+  int64 max_unix_nano = 4;
+  // Size of the segment file.
+  uint64 size_bytes = 5;
+  // Bytes fetched: the whole file for a scanned segment, zero otherwise.
+  uint64 bytes_read = 6;
+  // How many of the returned lines came from this segment.
+  uint32 hits = 7;
+}
+
+message StatsRequest {}
+
+message StatsResponse {
+  // Active segments (the ones searches can see).
+  uint32 segments = 1;
+  // Total log lines across them.
+  uint64 entries = 2;
+  // Total size of the segment files, in bytes.
+  uint64 stored_bytes = 3;
+  // Earliest and latest log timestamps, in nanoseconds since the Unix epoch.
+  // Both are zero when nothing is stored yet.
+  int64 min_unix_nano = 4;
+  int64 max_unix_nano = 5;
 }

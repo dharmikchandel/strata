@@ -31,7 +31,22 @@ func runUI(args []string) error {
 	fs := flag.NewFlagSet("ui", flag.ContinueOnError)
 	server := fs.String("server", "127.0.0.1:7070", "Strata server address")
 	listen := fs.String("listen", "127.0.0.1:7080", "address to serve the web page on")
+	corpus := fs.String("corpus-name", "", "what the stored logs are, shown in the page header (e.g. \"BGL supercomputer logs\")")
+	credit := fs.String("credit", "", "attribution line shown in the page footer (e.g. the dataset's citation)")
+	about := fs.String("about-url", "", "link target for \"How this works\" in the footer (http or https)")
+	examples := fs.String("examples", "", "JSON file of up to 4 example searches shown as one-click buttons (see bench/demo/bgl-examples.json)")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	opts := uiOptions{CorpusName: *corpus, Credit: *credit, AboutURL: *about}
+	if *examples != "" {
+		list, err := loadExamples(*examples)
+		if err != nil {
+			return err
+		}
+		opts.Examples = list
+	}
+	if err := opts.validate(); err != nil {
 		return err
 	}
 	conn, err := dial(*server)
@@ -40,7 +55,7 @@ func runUI(args []string) error {
 	}
 	defer conn.Close()
 
-	h, err := newUIHandler(stratav1.NewQueryServiceClient(conn))
+	h, err := newUIHandler(stratav1.NewQueryServiceClient(conn), opts)
 	if err != nil {
 		return err
 	}
@@ -56,24 +71,27 @@ func runUI(args []string) error {
 	return srv.ListenAndServe()
 }
 
-// searcher is the part of the query client the page needs (a stub in tests).
-type searcher interface {
+// uiClient is the part of the query client the page needs (a stub in tests).
+type uiClient interface {
 	Search(ctx context.Context, in *stratav1.SearchRequest, opts ...grpc.CallOption) (*stratav1.SearchResponse, error)
+	Stats(ctx context.Context, in *stratav1.StatsRequest, opts ...grpc.CallOption) (*stratav1.StatsResponse, error)
 }
 
 type uiHandler struct {
-	client searcher
+	client uiClient
+	opts   uiOptions
 	mux    *http.ServeMux
 }
 
-func newUIHandler(client searcher) (*uiHandler, error) {
+func newUIHandler(client uiClient, opts uiOptions) (*uiHandler, error) {
 	sub, err := fs.Sub(uiFiles, "ui")
 	if err != nil {
 		return nil, err
 	}
-	h := &uiHandler{client: client, mux: http.NewServeMux()}
+	h := &uiHandler{client: client, opts: opts, mux: http.NewServeMux()}
 	h.mux.Handle("GET /", http.FileServerFS(sub))
 	h.mux.HandleFunc("GET /api/search", h.search)
+	h.mux.HandleFunc("GET /api/overview", h.overview)
 	return h, nil
 }
 
@@ -95,11 +113,33 @@ type hitJSON struct {
 	SegmentID string            `json:"segment_id"`
 }
 
+// segmentJSON is what one search did with one segment, ready to draw.
+type segmentJSON struct {
+	Kind      string `json:"kind"` // "time", "bloom" or "scanned"
+	ID        string `json:"id"`
+	First     string `json:"first"` // the segment's first and last log time, UTC
+	Last      string `json:"last"`
+	Size      int64  `json:"size"`
+	BytesRead int64  `json:"bytes_read"`
+	Hits      int64  `json:"hits"` // lines in this response that came from it
+}
+
 type searchJSON struct {
 	Hits        []hitJSON        `json:"hits"`
 	Truncated   bool             `json:"truncated"`
 	Metrics     map[string]int64 `json:"metrics"`
 	RoundTripMs float64          `json:"round_trip_ms"`
+	// Segments is every segment, oldest first. Empty when the server judged
+	// there were too many to list, in which case SegmentsTruncated is set and
+	// the page falls back to the counts in Metrics.
+	Segments          []segmentJSON `json:"segments"`
+	SegmentsTruncated bool          `json:"segments_truncated"`
+}
+
+var segmentKinds = map[stratav1.SegmentOutcome_Kind]string{
+	stratav1.SegmentOutcome_KIND_SKIPPED_BY_TIME:  "time",
+	stratav1.SegmentOutcome_KIND_SKIPPED_BY_BLOOM: "bloom",
+	stratav1.SegmentOutcome_KIND_SCANNED:          "scanned",
 }
 
 func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +179,22 @@ func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
 		writeError(w, code, msg)
 		return
 	}
-	out := searchJSON{Truncated: resp.Truncated, RoundTripMs: float64(time.Since(start).Microseconds()) / 1000, Hits: make([]hitJSON, len(resp.Hits))}
+	out := searchJSON{
+		Truncated: resp.Truncated, RoundTripMs: float64(time.Since(start).Microseconds()) / 1000, Hits: make([]hitJSON, len(resp.Hits)),
+		Segments: make([]segmentJSON, 0, len(resp.Segments)), SegmentsTruncated: resp.SegmentsTruncated,
+	}
+	for _, o := range resp.Segments {
+		kind, ok := segmentKinds[o.Kind]
+		if !ok {
+			continue // an outcome this page doesn't know how to draw
+		}
+		out.Segments = append(out.Segments, segmentJSON{
+			Kind: kind, ID: o.SegmentId,
+			First: time.Unix(0, o.MinUnixNano).UTC().Format("2006-01-02 15:04"),
+			Last:  time.Unix(0, o.MaxUnixNano).UTC().Format("2006-01-02 15:04"),
+			Size:  int64(o.SizeBytes), BytesRead: int64(o.BytesRead), Hits: int64(o.Hits),
+		})
+	}
 	for i, hit := range resp.Hits {
 		out.Hits[i] = hitJSON{
 			Time:      time.Unix(0, hit.TimestampUnixNano).UTC().Format("2006-01-02 15:04:05.000000"),

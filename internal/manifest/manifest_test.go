@@ -406,3 +406,73 @@ func TestCountAllIncludesDeleted(t *testing.T) {
 		t.Fatalf("CountActive = %d, want 1", n)
 	}
 }
+
+func TestStatsSummarisesActiveSegmentsOnly(t *testing.T) {
+	m, _ := openTemp(t)
+	// Empty manifest: every field zero (and no error from NULL aggregates).
+	if st, err := m.Stats(ctx); err != nil || st != (Stats{}) {
+		t.Fatalf("empty: %+v %v", st, err)
+	}
+	m.AddSegment(ctx, seg("a", 100, 200, 5))
+	m.AddSegment(ctx, seg("b", 150, 900, 7))
+	m.AddSegment(ctx, seg("old", 1, 50, 100)) // replaced below: must not count
+	m.Replace(ctx, nil, []string{"old"})
+
+	st, err := m.Stats(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Segments != 2 || st.Entries != 12 || st.StoredBytes != 1200 || st.MinTS != 100 || st.MaxTS != 900 {
+		t.Fatalf("got %+v", st)
+	}
+}
+
+func TestPlanListsEverySegmentWithItsRangeFlag(t *testing.T) {
+	m, _ := openTemp(t)
+	a, b, c := seg("a", 0, 9, 1), seg("b", 10, 19, 1), seg("c", 30, 39, 1)
+	a.Bloom, b.Bloom, c.Bloom = []byte{1}, []byte{2}, []byte{3}
+	// Added out of order: Plan must still return oldest first.
+	m.AddSegment(ctx, c)
+	m.AddSegment(ctx, a)
+	m.AddSegment(ctx, b)
+	m.AddSegment(ctx, seg("gone", 0, 100, 1))
+	m.Replace(ctx, nil, []string{"gone"})
+
+	rows, err := m.Plan(ctx, 10, 20) // overlaps only b
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(ids(planSegments(rows))); got != "[a b c]" {
+		t.Fatalf("order/contents: %s (deleted segments must be excluded, all active ones included)", got)
+	}
+	flags := []bool{rows[0].InRange, rows[1].InRange, rows[2].InRange}
+	if fmt.Sprint(flags) != "[false true false]" {
+		t.Fatalf("in-range flags: %v", flags)
+	}
+	// Only the in-range segment carries its bloom filter.
+	if rows[0].Bloom != nil || rows[2].Bloom != nil || !reflect.DeepEqual(rows[1].Bloom, []byte{2}) {
+		t.Fatalf("blooms: %v %v %v", rows[0].Bloom, rows[1].Bloom, rows[2].Bloom)
+	}
+	// It agrees with Overlapping on which segments are in range, boundaries included.
+	for _, r := range [][2]int64{{0, 100}, {9, 10}, {10, 20}, {19, 20}, {20, 30}, {40, 50}, {-5, 0}} {
+		plan, _ := m.Plan(ctx, r[0], r[1])
+		over, _ := m.Overlapping(ctx, r[0], r[1])
+		var inRange []string
+		for _, p := range plan {
+			if p.InRange {
+				inRange = append(inRange, p.ID)
+			}
+		}
+		if fmt.Sprint(inRange) != fmt.Sprint(ids(over)) && !(len(inRange) == 0 && len(over) == 0) {
+			t.Errorf("[%d,%d): Plan says %v, Overlapping says %v", r[0], r[1], inRange, ids(over))
+		}
+	}
+}
+
+func planSegments(rows []PlanRow) []Segment {
+	out := make([]Segment, len(rows))
+	for i, r := range rows {
+		out[i] = r.Segment
+	}
+	return out
+}

@@ -324,6 +324,31 @@ func (m *Manifest) CountAll(ctx context.Context) (int, error) {
 	return n, nil
 }
 
+// Stats summarises the active segments: how many, how many log lines they hold,
+// their total size, and the earliest and latest log timestamps. When nothing is
+// stored, every field is zero.
+type Stats struct {
+	Segments    int
+	Entries     int64
+	StoredBytes int64
+	MinTS       int64
+	MaxTS       int64
+}
+
+// Stats reads the summary in one query, from the manifest only.
+func (m *Manifest) Stats(ctx context.Context) (Stats, error) {
+	var st Stats
+	var minTS, maxTS sql.NullInt64
+	err := m.db.QueryRowContext(ctx,
+		`SELECT COUNT(*), COALESCE(SUM(entry_count), 0), COALESCE(SUM(size_bytes), 0), MIN(min_ts), MAX(max_ts)
+		 FROM segments WHERE status = 'active'`).Scan(&st.Segments, &st.Entries, &st.StoredBytes, &minTS, &maxTS)
+	if err != nil {
+		return Stats{}, fmt.Errorf("manifest: stats: %w", err)
+	}
+	st.MinTS, st.MaxTS = minTS.Int64, maxTS.Int64 // NULL (no rows) becomes 0
+	return st, nil
+}
+
 // CountActive returns how many active segments exist.
 func (m *Manifest) CountActive(ctx context.Context) (int, error) {
 	var n int
@@ -363,6 +388,48 @@ func (m *Manifest) Overlapping(ctx context.Context, from, to int64) ([]Segment, 
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("manifest: overlapping: %w", err)
+	}
+	return out, nil
+}
+
+// PlanRow is one active segment as the query planner sees it for a time range.
+type PlanRow struct {
+	Segment
+	// InRange reports whether the segment's time range overlaps the query's.
+	// Bloom is filled in only for in-range segments: a segment already ruled
+	// out by time never needs its filter loaded.
+	InRange bool
+}
+
+// Plan returns EVERY active segment, oldest first (by min timestamp, then ID),
+// each flagged with whether it overlaps [from, to). It is the query planner's
+// single, consistent view: one statement, so a concurrent compaction can't make
+// "how many segments exist" and "which of them overlap" disagree, which two
+// separate queries could.
+func (m *Manifest) Plan(ctx context.Context, from, to int64) ([]PlanRow, error) {
+	rows, err := m.db.QueryContext(ctx,
+		`SELECT id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at,
+		        (max_ts >= ? AND min_ts < ?) AS in_range,
+		        CASE WHEN (max_ts >= ? AND min_ts < ?) THEN bloom END
+		 FROM segments WHERE status = 'active' ORDER BY min_ts, id`, from, to, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("manifest: plan: %w", err)
+	}
+	defer rows.Close()
+	var out []PlanRow
+	for rows.Next() {
+		var r PlanRow
+		var created int64
+		var st string
+		if err := rows.Scan(&r.ID, &r.Key, &r.MinTS, &r.MaxTS, &r.Count, &r.Size, &st, &created, &r.InRange, &r.Bloom); err != nil {
+			return nil, fmt.Errorf("manifest: scan: %w", err)
+		}
+		r.Status = Status(st)
+		r.CreatedAt = time.Unix(0, created)
+		out = append(out, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("manifest: plan: %w", err)
 	}
 	return out, nil
 }
