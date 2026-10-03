@@ -96,6 +96,10 @@ type Compactor struct {
 	// tried again.
 	bad map[string]error
 
+	// stuckWarnedFor remembers the last "compaction is stuck" warning so it is
+	// logged once per situation instead of on every tick.
+	stuckWarnedFor int
+
 	// crashHook, if set, is called at named points so tests can stop the
 	// process "mid-merge". Always nil in production.
 	crashHook func(stage string)
@@ -172,6 +176,36 @@ func (c *Compactor) pickBatch(active []manifest.Segment) []manifest.Segment {
 	return batch
 }
 
+// warnIfStuck logs when there are enough small segments to merge but the size
+// settings make a merge impossible. The usual cause is TargetBytes being too
+// small: if only fewer than MinSegments segments fit under it, no batch ever
+// qualifies, compaction silently does nothing, and the segment count grows
+// without limit. (This was found in practice by lowering TargetBytes.)
+func (c *Compactor) warnIfStuck(active []manifest.Segment) {
+	small := 0
+	var smallest int64
+	for _, s := range active {
+		if s.Size >= c.cfg.SmallBytes {
+			continue
+		}
+		if _, broken := c.bad[s.ID]; broken {
+			continue
+		}
+		if small == 0 || s.Size < smallest {
+			smallest = s.Size
+		}
+		small++
+	}
+	if small < c.cfg.MinSegments || small == c.stuckWarnedFor {
+		return
+	}
+	c.stuckWarnedFor = small
+	c.log.Warn("compaction is stuck: there are enough small segments to merge, but no batch fits the size limits. "+
+		"Raise compact-target-bytes (it must fit at least min-segments segments) or lower compact-min-segments",
+		"small_segments", small, "min_segments", c.cfg.MinSegments,
+		"target_bytes", c.cfg.TargetBytes, "smallest_small_segment_bytes", smallest)
+}
+
 // CompactOnce performs at most one merge. It returns a nil Report (and nil
 // error) when there is nothing worth merging.
 func (c *Compactor) CompactOnce(ctx context.Context) (*Report, error) {
@@ -184,8 +218,10 @@ func (c *Compactor) CompactOnce(ctx context.Context) (*Report, error) {
 	}
 	batch := c.pickBatch(active)
 	if batch == nil {
+		c.warnIfStuck(active)
 		return nil, nil
 	}
+	c.stuckWarnedFor = 0
 
 	// 1. Read the inputs.
 	var entries []segment.Entry

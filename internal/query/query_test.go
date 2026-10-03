@@ -298,6 +298,20 @@ func TestLimitAndTruncation(t *testing.T) {
 	}
 }
 
+// Regression test: when a single segment alone holds more matches than the
+// limit, the result must still be marked truncated.
+func TestTruncationIsReportedForASingleSegment(t *testing.T) {
+	e := newEnv(t)
+	e.timeSegments(1) // 100 matching lines in one segment
+	res := e.search(Query{Text: "common", Limit: 10})
+	if len(res.Hits) != 10 || !res.Truncated {
+		t.Fatalf("hits=%d truncated=%v, want 10 hits and truncated", len(res.Hits), res.Truncated)
+	}
+	if res := e.search(Query{Text: "common", Limit: 100}); res.Truncated || len(res.Hits) != 100 {
+		t.Fatalf("a limit equal to the match count must not be truncated: hits=%d truncated=%v", len(res.Hits), res.Truncated)
+	}
+}
+
 func TestEmptyManifest(t *testing.T) {
 	e := newEnv(t)
 	res := e.search(Query{Text: "anything"})
@@ -481,7 +495,7 @@ func TestMissingSegmentEventuallyErrors(t *testing.T) {
 	rows := e.timeSegments(2)
 	e.store.Delete(ctx, rows[0].Key)
 	_, err := e.eng.Search(ctx, Query{Text: "common"})
-	if !errors.Is(err, errStale) {
+	if !errors.Is(err, ErrSegmentMissing) {
 		t.Fatalf("want a missing-segment error, got %v", err)
 	}
 }

@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package strata.v1;
+
+option go_package = "github.com/dharmikchandel/strata/gen/strata/v1;stratav1";
+
+// QueryService searches stored logs.
+service QueryService {
+  // Search returns the earliest matching lines in timestamp order, plus
+  // metrics describing how much work the search did.
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+message SearchRequest {
+  // Full-text search on the message. A line matches only if it contains ALL
+  // terms (letters and digits, case-insensitive), in any order. Empty means
+  // "every line", which still needs a time range or tags to be useful.
+  string text = 1;
+  // Optional exact-match tag filters; a line must have every one.
+  map<string, string> tags = 2;
+  // Time range [from, to) in nanoseconds since the Unix epoch. Zero means
+  // unbounded on that side.
+  int64 from_unix_nano = 3;
+  int64 to_unix_nano = 4;
+  // Maximum number of hits. Zero means the server default; values above the
+  // server's maximum are rejected.
+  uint32 limit = 5;
+}
+
+message SearchHit {
+  int64 timestamp_unix_nano = 1;
+  string message = 2;
+  map<string, string> tags = 3;
+  // The segment the line was read from.
+  string segment_id = 4;
+}
+
+// How much work a search did. The point of Strata is to read as little as
+// possible, and these numbers show how well that worked for this query.
+message SearchMetrics {
+  // Every active segment: what a naive scan would have read.
+  uint32 segments_considered = 1;
+  // Ruled out because their time range misses the query's.
+  uint32 skipped_by_time = 2;
+  // Ruled out because a query term is definitely not in them (bloom filter).
+  uint32 skipped_by_bloom = 3;
+  // Actually fetched from object storage and searched.
+  uint32 segments_scanned = 4;
+  // Total size of the segments fetched.
+  uint64 bytes_read = 5;
+  // Times the search restarted because a segment was replaced mid-query.
+  uint32 retries = 6;
+  // Time spent inside the server, in microseconds.
+  uint64 server_micros = 7;
+}
+
+message SearchResponse {
+  repeated SearchHit hits = 1;
+  // True if more lines matched than the limit allowed.
+  bool truncated = 2;
+  SearchMetrics metrics = 3;
+}

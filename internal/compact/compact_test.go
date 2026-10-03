@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -866,5 +867,75 @@ func TestGCTrustsItsManifestSoAWrongOneDestroysData(t *testing.T) {
 	}
 	if gc.OrphansDeleted != 3 || len(e.objects()) != 0 {
 		t.Fatalf("expected the wrong manifest's GC to delete all 3 real segments: %+v, %d left", gc, len(e.objects()))
+	}
+}
+
+// recordingHandler captures log messages so tests can check what was warned.
+type recordingHandler struct {
+	mu   sync.Mutex
+	msgs []string
+}
+
+func (h *recordingHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (h *recordingHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	h.msgs = append(h.msgs, r.Message)
+	h.mu.Unlock()
+	return nil
+}
+func (h *recordingHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h *recordingHandler) WithGroup(string) slog.Handler      { return h }
+func (h *recordingHandler) count(substr string) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	n := 0
+	for _, m := range h.msgs {
+		if strings.Contains(m, substr) {
+			n++
+		}
+	}
+	return n
+}
+
+// Found while benchmarking: with TargetBytes so small that fewer than
+// MinSegments segments fit, no batch ever qualifies and compaction does
+// nothing, with no sign of a problem while segments pile up. It must say so.
+func TestStuckCompactionIsReported(t *testing.T) {
+	e := newEnv(t)
+	var sz int64
+	for i := 0; i < 6; i++ {
+		sz = e.addSegment(int64(i*100), 20).Size
+	}
+	rec := &recordingHandler{}
+	c := e.compactor(func(c *Config) {
+		c.MinSegments = 4
+		c.TargetBytes = sz * 3 // only 3 fit, but 4 are required
+		c.Logger = slog.New(rec)
+	})
+	for i := 0; i < 3; i++ {
+		if rep, err := c.CompactOnce(ctx); rep != nil || err != nil {
+			t.Fatalf("%v %v", rep, err)
+		}
+	}
+	if got := rec.count("compaction is stuck"); got != 1 {
+		t.Fatalf("want the warning exactly once for an unchanged situation, got %d", got)
+	}
+
+	// Once the settings allow a merge, it proceeds and the warning resets.
+	c.cfg.MinSegments = 3
+	if rep, err := c.CompactOnce(ctx); err != nil || rep == nil {
+		t.Fatalf("%v %v", rep, err)
+	}
+}
+
+// No warning when there is simply nothing to merge.
+func TestNoStuckWarningWhenThereIsNothingToDo(t *testing.T) {
+	e := newEnv(t)
+	e.addSegment(0, 10)
+	rec := &recordingHandler{}
+	c := e.compactor(func(c *Config) { c.MinSegments = 4; c.Logger = slog.New(rec) })
+	c.CompactOnce(ctx)
+	if rec.count("stuck") != 0 {
+		t.Fatal("warned although a single segment is nothing to compact")
 	}
 }

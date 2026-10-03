@@ -44,6 +44,8 @@ type Config struct {
 	CompactInterval    time.Duration
 	CompactSmallBytes  int64
 	CompactTargetBytes int64
+	CompactMinSegments int
+	CompactMaxSegments int
 	OrphanGrace        time.Duration
 
 	MaxRecvMsgBytes int
@@ -148,6 +150,9 @@ func ParseConfig(args []string, getenv func(string) string) (Config, error) {
 	dur(&c.CompactInterval, "compact-interval", "STRATA_COMPACT_INTERVAL", compact.DefaultInterval, "how often to look for segments to merge")
 	num(&c.CompactSmallBytes, "compact-small-bytes", "STRATA_COMPACT_SMALL_BYTES", compact.DefaultSmallBytes, "only segments smaller than this are merged")
 	num(&c.CompactTargetBytes, "compact-target-bytes", "STRATA_COMPACT_TARGET_BYTES", compact.DefaultTargetBytes, "upper bound on the size of one merge")
+	var minSeg, maxSeg int64
+	num(&minSeg, "compact-min-segments", "STRATA_COMPACT_MIN_SEGMENTS", compact.DefaultMinSegments, "a merge needs at least this many segments (the target size must be big enough to fit that many)")
+	num(&maxSeg, "compact-max-segments", "STRATA_COMPACT_MAX_SEGMENTS", compact.DefaultMaxSegments, "a merge takes at most this many segments")
 	dur(&c.OrphanGrace, "orphan-grace", "STRATA_ORPHAN_GRACE", compact.DefaultOrphanGrace, "unrecorded segment files younger than this are never deleted; must exceed the slowest seal")
 
 	var maxRecv int64
@@ -179,6 +184,7 @@ func ParseConfig(args []string, getenv func(string) string) (Config, error) {
 		c.S3.PathStyle = true
 	}
 	c.BufferBytes = int(bufBytes)
+	c.CompactMinSegments, c.CompactMaxSegments = int(minSeg), int(maxSeg)
 	c.MaxRecvMsgBytes = int(maxRecv)
 	c.CompactEnabled = !noCompact
 	return c, c.Validate()
@@ -210,6 +216,16 @@ func (c Config) Validate() error {
 	if c.CompactEnabled {
 		if c.CompactInterval <= 0 || c.CompactSmallBytes <= 0 || c.CompactTargetBytes <= 0 {
 			bad("compaction interval and sizes must be positive")
+		}
+		minSeg, maxSeg := c.CompactMinSegments, c.CompactMaxSegments
+		if minSeg == 0 {
+			minSeg = compact.DefaultMinSegments
+		}
+		if maxSeg == 0 {
+			maxSeg = compact.DefaultMaxSegments
+		}
+		if minSeg < 2 || maxSeg < minSeg {
+			bad("need 2 <= compact-min-segments <= compact-max-segments")
 		}
 		if c.CompactTargetBytes < c.CompactSmallBytes {
 			bad("compact-target-bytes must be at least compact-small-bytes")

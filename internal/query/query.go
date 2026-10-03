@@ -114,8 +114,9 @@ func New(m *manifest.Manifest, store storage.Storage, concurrency int) *Engine {
 	return &Engine{manifest: m, store: store, concurrency: concurrency}
 }
 
-// errStale means a segment listed in the manifest was gone from storage.
-var errStale = errors.New("query: segment missing from storage")
+// ErrSegmentMissing means a segment listed in the manifest was gone from storage
+// (after the retries described on Search).
+var ErrSegmentMissing = errors.New("query: segment missing from storage")
 
 // Search runs q.
 //
@@ -130,7 +131,7 @@ func (e *Engine) Search(ctx context.Context, q Query) (*Result, error) {
 	retries := 0
 	for attempt := 1; ; attempt++ {
 		res, err := e.search(ctx, q)
-		if errors.Is(err, errStale) && attempt < maxAttempts {
+		if errors.Is(err, ErrSegmentMissing) && attempt < maxAttempts {
 			retries++
 			continue
 		}
@@ -188,7 +189,11 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	g.SetLimit(e.concurrency)
 	for i, s := range candidates {
 		g.Go(func() error {
-			hits, n, err := e.scan(gctx, s, terms, from, to, limit)
+			// limit+1: one extra hit per segment is what lets the merge below
+			// notice that more lines matched than were asked for. Cutting a
+			// segment at exactly limit would hide that (Truncated would stay
+			// false when one segment alone had more matches than the limit).
+			hits, n, err := e.scan(gctx, s, terms, from, to, limit+1)
 			perSegment[i], bytesRead[i] = hits, n
 			return err
 		})
@@ -217,11 +222,11 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 }
 
 // scan fetches one segment and returns its matches (at most limit, earliest
-// first) and the number of bytes fetched.
+// first; the caller passes the query limit plus one, see search) and the number of bytes fetched.
 func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, from, to int64, limit int) ([]Hit, int64, error) {
 	r, err := e.store.Get(ctx, s.Key)
 	if errors.Is(err, storage.ErrNotFound) {
-		return nil, 0, fmt.Errorf("%w: %s (%s)", errStale, s.ID, s.Key)
+		return nil, 0, fmt.Errorf("%w: %s (%s)", ErrSegmentMissing, s.ID, s.Key)
 	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("query: fetch segment %s: %w", s.ID, err)

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Strata search</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Strata</h1>
+    <p class="lede">Search logs stored as immutable segments in object storage. The bar shows how many segments the search <em>didn't</em> have to read.</p>
+
+    <form id="form">
+      <label>Words <input name="text" placeholder="e.g. parity error" autocomplete="off" autofocus></label>
+      <label>Tag <input name="tag" placeholder="level=FATAL" autocomplete="off"></label>
+      <label>From (UTC) <input name="from" type="datetime-local"></label>
+      <label>To (UTC) <input name="to" type="datetime-local"></label>
+      <label>Max lines <input name="limit" type="number" min="1" max="1000" value="50"></label>
+      <button type="submit">Search</button>
+    </form>
+
+    <section id="metrics" hidden>
+      <h2>Work done</h2>
+      <div id="bar" role="img" aria-label="Segments skipped by time, skipped by bloom filter, and scanned"></div>
+      <ul id="legend">
+        <li><span class="swatch time"></span> skipped by time range <b id="m-time">0</b></li>
+        <li><span class="swatch bloom"></span> skipped by bloom filter <b id="m-bloom">0</b></li>
+        <li><span class="swatch scanned"></span> scanned <b id="m-scanned">0</b></li>
+      </ul>
+      <p id="summary"></p>
+    </section>
+
+    <p id="error" role="alert" hidden></p>
+    <p id="status" aria-live="polite"></p>
+    <table id="results" hidden>
+      <thead><tr><th>Time (UTC)</th><th>Message</th><th>Tags</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

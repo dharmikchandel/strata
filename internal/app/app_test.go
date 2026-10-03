@@ -531,3 +531,40 @@ func TestNewBucketGetsAMarkerAndSegmentListingsIgnoreIt(t *testing.T) {
 		t.Fatalf("marker leaked into the segments prefix: %v", segs)
 	}
 }
+
+// The full path through the real server: logs go in over the ingest RPC, get
+// sealed and recorded, and come back out of the search RPC with metrics.
+func TestSearchAfterIngestThroughTheServer(t *testing.T) {
+	cfg := testConfig(t, storagetest.NewMem())
+	cfg.BufferAge = 30 * time.Millisecond // seal quickly so the lines become searchable
+	a, err := Start(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer shutdown(t, a)
+	ingestLines(t, a, "demo", 200)
+
+	client := stratav1.NewQueryServiceClient(dial(t, a))
+	var resp *stratav1.SearchResponse
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		resp, err = client.Search(ctx, &stratav1.SearchRequest{Text: "common", Limit: 1000})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(resp.Hits) == 200 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if len(resp.Hits) != 200 {
+		t.Fatalf("search found %d of 200 lines", len(resp.Hits))
+	}
+	if resp.Metrics.SegmentsConsidered == 0 || resp.Metrics.SegmentsScanned == 0 {
+		t.Fatalf("metrics missing: %+v", resp.Metrics)
+	}
+	one, err := client.Search(ctx, &stratav1.SearchRequest{Text: "demo-00123"})
+	if err != nil || len(one.Hits) != 1 {
+		t.Fatalf("rare-term search: %v %+v", err, one)
+	}
+}

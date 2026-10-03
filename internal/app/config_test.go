@@ -72,6 +72,17 @@ func TestPathStyleFollowsEndpointUnlessOverridden(t *testing.T) {
 	}
 }
 
+func TestCompactionSegmentLimitsAreConfigurable(t *testing.T) {
+	c, err := ParseConfig([]string{"-compact-min-segments", "2", "-compact-max-segments", "10"}, env())
+	if err != nil || c.CompactMinSegments != 2 || c.CompactMaxSegments != 10 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	c, err = ParseConfig(nil, env("STRATA_COMPACT_MIN_SEGMENTS", "3"))
+	if err != nil || c.CompactMinSegments != 3 {
+		t.Fatalf("%+v %v", c, err)
+	}
+}
+
 func TestNoCompactFlag(t *testing.T) {
 	c, err := ParseConfig([]string{"-no-compact"}, env())
 	if err != nil || c.CompactEnabled {
@@ -94,6 +105,8 @@ func TestInvalidInputIsRejectedWithAClearMessage(t *testing.T) {
 		"zero buffer":           {[]string{"-buffer-bytes", "0"}, env(), "buffer"},
 		"empty bucket":          {[]string{"-s3-bucket", ""}, env(), "bucket"},
 		"target below small":    {[]string{"-compact-small-bytes", "100", "-compact-target-bytes", "10"}, env(), "compact-target-bytes"},
+		"min segments below 2":  {[]string{"-compact-min-segments", "1"}, env(), "compact-min-segments"},
+		"max below min":         {[]string{"-compact-min-segments", "5", "-compact-max-segments", "3"}, env(), "compact-max-segments"},
 		"unknown log level":     {[]string{"-log-level", "loud"}, env(), "log-level"},
 		"negative orphan grace": {[]string{"-orphan-grace", "-1s"}, env(), "orphan-grace"},
 	}

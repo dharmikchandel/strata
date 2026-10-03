@@ -15,9 +15,11 @@ import (
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	stratav1 "github.com/dharmikchandel/strata/gen/strata/v1"
 	"github.com/dharmikchandel/strata/internal/compact"
 	"github.com/dharmikchandel/strata/internal/ingest"
 	"github.com/dharmikchandel/strata/internal/manifest"
+	"github.com/dharmikchandel/strata/internal/query"
 	"github.com/dharmikchandel/strata/internal/storage"
 )
 
@@ -124,6 +126,7 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 	// while draining at shutdown.
 	a.health = health.NewServer()
 	healthpb.RegisterHealthServer(a.grpc, a.health)
+	stratav1.RegisterQueryServiceServer(a.grpc, query.NewService(query.New(m, a.store, 0), query.ServiceConfig{Logger: a.log}))
 	a.serveDone = make(chan error, 1)
 	go func() { a.serveDone <- a.grpc.Serve(a.lis) }()
 	a.health.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
@@ -135,6 +138,8 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 			Storage:     a.store,
 			SmallBytes:  cfg.CompactSmallBytes,
 			TargetBytes: cfg.CompactTargetBytes,
+			MinSegments: cfg.CompactMinSegments,
+			MaxSegments: cfg.CompactMaxSegments,
 			Interval:    cfg.CompactInterval,
 			OrphanGrace: cfg.OrphanGrace,
 			Logger:      a.log,
