@@ -320,3 +320,69 @@ func TestLegendColoursDoNotLeakOntoTableCells(t *testing.T) {
 		}
 	}
 }
+
+// Phone adaptation guards. These check the things that went wrong on phones and
+// that no desktop-width test would notice.
+func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
+	html, _ := os.ReadFile("ui/index.html")
+	css, _ := os.ReadFile("ui/style.css")
+	js, _ := os.ReadFile("ui/app.js")
+	page := string(html)
+
+	// A cursor in the search box opens the on-screen keyboard over the result.
+	if strings.Contains(page, "autofocus") {
+		t.Error("an autofocus attribute opens the keyboard on phones; focus only for fine pointers, from script")
+	}
+	if !strings.Contains(string(js), "(pointer: fine)") {
+		t.Error("app.js should focus the search box only on pointer devices")
+	}
+	// Notch / rounded-corner safe areas need viewport-fit=cover to take effect.
+	if !strings.Contains(page, "viewport-fit=cover") || !strings.Contains(string(css), "safe-area-inset") {
+		t.Error("the page should extend under the notch and pad by the safe-area insets")
+	}
+	// Log search terms must not be auto-capitalised or autocorrected.
+	for _, want := range []string{`autocapitalize="off"`, `autocorrect="off"`, `spellcheck="false"`, `enterkeyhint="search"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the search input is missing %s", want)
+		}
+	}
+	// Rows become blocks on phones, which drops table semantics unless roles are explicit.
+	for _, role := range []string{`role="table"`, `role="row"`, `role="columnheader"`, `role="rowgroup"`} {
+		if !strings.Contains(page, role) {
+			t.Errorf("the table markup is missing %s", role)
+		}
+	}
+	if !strings.Contains(string(js), "setAttribute('role', 'cell')") {
+		t.Error("cells created by app.js need role=cell")
+	}
+	// The filter toggle must point at the group it opens.
+	if !strings.Contains(page, `aria-controls="filters"`) || !strings.Contains(page, `id="filters"`) || !strings.Contains(page, `aria-expanded="false"`) {
+		t.Error("the Filters toggle needs aria-controls and aria-expanded")
+	}
+	// Core information must never be hidden on a phone: the tags column was, once.
+	if regexp.MustCompile(`td\.tags[^{]*\{[^}]*display:\s*none`).Match(css) {
+		t.Error("a rule hides the tags on small screens; they are core information")
+	}
+	// A bare `th:nth-child(n)` rule also hid a column of the read-list table.
+	if regexp.MustCompile(`(?m)(^|[{};])\s*th:nth-child`).Match(css) {
+		t.Error("th:nth-child selectors must be scoped to one table")
+	}
+	// The touch sizing must come AFTER the base rules it overrides: it once sat
+	// before `.example {`, lost on order, and left the rows 42px tall on touch.
+	coarse := strings.LastIndex(string(css), "@media (pointer: coarse)")
+	base := strings.LastIndex(string(css), "\n.example {")
+	if coarse < 0 || base < 0 || coarse < base {
+		t.Error("the @media (pointer: coarse) block must come after the .example base rule so it wins")
+	}
+	// Hover styles belong inside a hover media query so a tap leaves nothing "stuck".
+	for _, bare := range []string{".example:hover", "#submit:hover"} {
+		i := strings.Index(string(css), bare)
+		if i < 0 {
+			continue
+		}
+		before := string(css)[:i]
+		if j := strings.LastIndex(before, "@media"); j < 0 || !strings.Contains(before[j:], "(hover: hover)") {
+			t.Errorf("%s is not inside @media (hover: hover)", bare)
+		}
+	}
+}

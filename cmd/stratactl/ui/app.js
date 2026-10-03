@@ -3,6 +3,26 @@
 const form = document.getElementById('form');
 const $ = (id) => document.getElementById(id);
 
+// ---- filters: folded away on small screens (the CSS decides when) ------------
+const filtersBox = $('filters');
+const filtersToggle = $('filters-toggle');
+
+function setFiltersOpen(open) {
+  filtersBox.classList.toggle('open', open);
+  filtersToggle.setAttribute('aria-expanded', String(open));
+}
+function updateFiltersLabel() {
+  const f = form.elements;
+  const n = [f.tag.value, f.from.value, f.to.value].filter(v => v.trim() !== '').length;
+  filtersToggle.textContent = n ? `Filters (${n})` : 'Filters';
+  return n;
+}
+filtersToggle.addEventListener('click', () => setFiltersOpen(!filtersBox.classList.contains('open')));
+form.addEventListener('input', updateFiltersLabel);
+// A filter that fails the browser's own check (a date outside the data) must
+// not be hidden: it could not be focused, and the form would silently refuse to submit.
+form.addEventListener('invalid', () => setFiltersOpen(true), true);
+
 let inFlight = null; // AbortController of the search currently running
 let activeExample = null; // button of the example whose search is shown
 
@@ -120,9 +140,11 @@ function render(r) {
   body.replaceChildren();
   for (const h of r.hits) {
     const tr = document.createElement('tr');
+    tr.setAttribute('role', 'row');
     for (const [cls, text] of [['ts', h.time], ['msg', h.message], ['tags', Object.entries(h.tags || {}).map(([k, v]) => k + '=' + v).join(' ')]]) {
       const td = document.createElement('td');
       td.className = cls;
+      td.setAttribute('role', 'cell');
       td.textContent = text;
       tr.appendChild(td);
     }
@@ -212,10 +234,13 @@ function drawReadList(segs) {
   const SHOW = 12;
   for (const s of read.slice(0, SHOW)) {
     const tr = document.createElement('tr');
-    const cells = [['id', shortId(s.id)], ['', `${s.first} to ${s.last}`], ['num', formatBytes(s.bytes_read)], ['num', String(s.hits)]];
-    for (const [cls, text] of cells) {
+    tr.setAttribute('role', 'row');
+    const cells = [['id', 'segment', shortId(s.id)], ['covers', 'covers', `${s.first} to ${s.last}`], ['num', 'size', formatBytes(s.bytes_read)], ['num', 'lines shown', String(s.hits)]];
+    for (const [cls, label, text] of cells) {
       const td = document.createElement('td');
-      if (cls) td.className = cls;
+      td.className = cls;
+      td.setAttribute('role', 'cell');
+      td.dataset.label = label; // shown as a prefix on phones, where the column headers are hidden
       td.textContent = text;
       tr.appendChild(td);
     }
@@ -256,6 +281,8 @@ function fillForm(ex) {
   form.elements.from.value = ex.from || '';
   form.elements.to.value = ex.to || '';
   form.elements.limit.value = ex.limit || 50;
+  // Show the filters an example uses, so what ran is visible; fold them otherwise.
+  setFiltersOpen(updateFiltersLabel() > 0);
 }
 
 function runExample(ex, btn) {
@@ -346,4 +373,10 @@ async function loadOverview() {
   }
 }
 
+// A cursor in the search box is a convenience with a keyboard and a hazard on a
+// phone, where focusing it opens the on-screen keyboard over the page. So only
+// pointer devices get it.
+if (window.matchMedia('(pointer: fine)').matches) form.elements.text.focus({preventScroll: true});
+
+updateFiltersLabel();
 loadOverview();

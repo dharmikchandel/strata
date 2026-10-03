@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Strata search</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
     <h1>Strata</h1>
-    <p class="lede">Strata keeps logs in immutable chunks called segments. Before reading anything, it rules out the segments that cannot contain your answer. The bar below each search shows how many it never had to open.</p>
+    <p class="lede">Strata keeps logs in immutable chunks called segments. Before reading anything, it rules out the segments that cannot contain your answer. <span class="lede-more">The bar below each search shows how many it never had to open.</span></p>
     <p id="corpus" class="corpus" hidden></p>
 
     <section id="examples" class="examples" aria-labelledby="examples-title" hidden>
@@ -18,11 +18,14 @@
     </section>
 
     <form id="form">
-      <label>Words <input name="text" placeholder="e.g. parity error" autocomplete="off" autofocus></label>
-      <label>Tags <input name="tag" placeholder="level=FATAL" autocomplete="off"></label>
-      <label>From (UTC) <input name="from" type="datetime-local"></label>
-      <label>To (UTC) <input name="to" type="datetime-local"></label>
-      <label>Max lines <input name="limit" type="number" min="1" max="1000" value="50"></label>
+      <label>Words <input name="text" placeholder="e.g. parity error" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></label>
+      <button type="button" id="filters-toggle" aria-expanded="false" aria-controls="filters">Filters</button>
+      <div id="filters">
+        <label>Tags <input name="tag" placeholder="level=FATAL" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <label>From (UTC) <input name="from" type="datetime-local"></label>
+        <label>To (UTC) <input name="to" type="datetime-local"></label>
+        <label>Max lines <input name="limit" type="number" min="1" max="1000" value="50" inputmode="numeric"></label>
+      </div>
       <button type="submit" id="submit">Search</button>
     </form>
     <p class="form-hint">A line matches when it contains every word, in any order. Separate several tags with spaces.</p>
@@ -46,9 +49,9 @@
       <p id="summary"></p>
       <details id="read-list" class="explain" hidden>
         <summary id="read-summary">Which segments were read</summary>
-        <table id="read-table">
-          <thead><tr><th>Segment</th><th>Covers (UTC)</th><th>Size</th><th>Lines shown</th></tr></thead>
-          <tbody></tbody>
+        <table id="read-table" role="table">
+          <thead role="rowgroup"><tr role="row"><th role="columnheader">Segment</th><th role="columnheader">Covers (UTC)</th><th role="columnheader">Size</th><th role="columnheader">Lines shown</th></tr></thead>
+          <tbody role="rowgroup"></tbody>
         </table>
       </details>
       <details class="explain">
@@ -66,9 +69,9 @@
       </details>
     </section>
 
-        <table id="results" hidden>
-      <thead><tr><th>Time (UTC)</th><th>Message</th><th>Tags</th></tr></thead>
-      <tbody></tbody>
+        <table id="results" role="table" hidden>
+      <thead role="rowgroup"><tr role="row"><th role="columnheader">Time (UTC)</th><th role="columnheader">Message</th><th role="columnheader">Tags</th></tr></thead>
+      <tbody role="rowgroup"></tbody>
     </table>
   </main>
   <footer id="foot" hidden>
