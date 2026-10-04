@@ -147,3 +147,53 @@ func TestShippedExamplesFileIsValid(t *testing.T) {
 		}
 	}
 }
+
+func TestRelativeExamples(t *testing.T) {
+	// "last" is a duration of at least a minute and replaces from/to.
+	for name, e := range map[string]example{
+		"not a duration": {Title: "t", Text: "x", Last: "recently"},
+		"too short":      {Title: "t", Text: "x", Last: "30s"},
+		"too long":       {Title: "t", Text: "x", Last: "9000h"},
+		"with from":      {Title: "t", Text: "x", Last: "5m", From: "2005-06-20T13:00"},
+		"with to":        {Title: "t", Text: "x", Last: "5m", To: "2005-06-20T13:00"},
+	} {
+		if err := (uiOptions{Examples: []example{e}}).validate(); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	// A window alone is a valid example (no words needed).
+	ok := uiOptions{Examples: []example{{Title: "Recent", Last: "24h"}, {Title: "t", Text: "x", Last: "90m"}}}
+	if err := ok.validate(); err != nil {
+		t.Fatal(err)
+	}
+	// The page receives the window as seconds, to apply at the moment of the click.
+	h, _ := newUIHandler(&stubSearcher{}, ok)
+	var o overviewJSON
+	if err := json.Unmarshal(get(t, h, "/api/overview").Body.Bytes(), &o); err != nil {
+		t.Fatal(err)
+	}
+	if o.Examples[0].LastSeconds != 86400 || o.Examples[1].LastSeconds != 5400 {
+		t.Fatalf("last_seconds: %d, %d", o.Examples[0].LastSeconds, o.Examples[1].LastSeconds)
+	}
+}
+
+func TestShippedLiveExamplesFileIsValid(t *testing.T) {
+	list, err := loadExamples("../../bench/demo/live-examples.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative := 0
+	for _, e := range list {
+		if e.Note == "" {
+			t.Errorf("example %q has no note", e.Title)
+		}
+		if e.Last != "" {
+			relative++
+		}
+	}
+	// Data stamped "now" goes stale under a fixed window, so the live examples
+	// must use relative ones.
+	if relative == 0 {
+		t.Error("none of the live examples is relative to now")
+	}
+}

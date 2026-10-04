@@ -28,7 +28,22 @@ type example struct {
 	Tags  map[string]string `json:"tags"`
 	From  string            `json:"from"` // UTC, e.g. 2005-06-20T13:00
 	To    string            `json:"to"`
-	Limit int               `json:"limit"`
+	// Last, e.g. "5m" or "1h", means "from that long before the moment you click";
+	// for data that keeps arriving, where a fixed window would soon be stale.
+	// It replaces from and to.
+	Last  string `json:"last"`
+	Limit int    `json:"limit"`
+}
+
+// maxLast bounds "last": a window longer than a year is not an example.
+const maxLast = 365 * 24 * time.Hour
+
+func (e example) lastSeconds() int64 {
+	d, err := time.ParseDuration(e.Last)
+	if err != nil {
+		return 0
+	}
+	return int64(d / time.Second)
 }
 
 // uiOptions is the page's presentation settings. All of it is optional: with
@@ -60,7 +75,16 @@ func (o uiOptions) validate() error {
 		if len(e.Note) > maxNoteLen {
 			return fmt.Errorf("%s: note must be at most %d characters", where, maxNoteLen)
 		}
-		if e.Text == "" && len(e.Tags) == 0 && e.From == "" && e.To == "" {
+		if e.Last != "" {
+			d, err := time.ParseDuration(e.Last)
+			if err != nil || d < time.Minute || d > maxLast {
+				return fmt.Errorf("%s: last must be a duration between 1m and %s, like 5m or 24h", where, maxLast)
+			}
+			if e.From != "" || e.To != "" {
+				return fmt.Errorf("%s: last replaces from and to; give one or the other", where)
+			}
+		}
+		if e.Text == "" && len(e.Tags) == 0 && e.From == "" && e.To == "" && e.Last == "" {
 			return fmt.Errorf("%s: needs at least words, a tag or a time range", where)
 		}
 		if e.Limit < 0 || e.Limit > uiMaxLimit {
@@ -118,12 +142,24 @@ type corpusJSON struct {
 	MaxInput string `json:"max_input"`
 }
 
+// exampleJSON is an example as the page receives it.
+type exampleJSON struct {
+	Title       string            `json:"title"`
+	Note        string            `json:"note"`
+	Text        string            `json:"text"`
+	Tags        map[string]string `json:"tags"`
+	From        string            `json:"from"`
+	To          string            `json:"to"`
+	LastSeconds int64             `json:"last_seconds,omitempty"` // from "last", for the page to apply at click time
+	Limit       int               `json:"limit"`
+}
+
 type overviewJSON struct {
 	// Corpus is null when nothing is stored yet.
-	Corpus   *corpusJSON `json:"corpus"`
-	Examples []example   `json:"examples"`
-	Credit   string      `json:"credit,omitempty"`
-	AboutURL string      `json:"about_url,omitempty"`
+	Corpus   *corpusJSON   `json:"corpus"`
+	Examples []exampleJSON `json:"examples"`
+	Credit   string        `json:"credit,omitempty"`
+	AboutURL string        `json:"about_url,omitempty"`
 }
 
 // overview gives the page what it needs to introduce itself: what is stored,
@@ -135,9 +171,10 @@ func (h *uiHandler) overview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, code, msg)
 		return
 	}
-	out := overviewJSON{Examples: h.opts.Examples, Credit: h.opts.Credit, AboutURL: h.opts.AboutURL}
-	if out.Examples == nil {
-		out.Examples = []example{}
+	out := overviewJSON{Examples: []exampleJSON{}, Credit: h.opts.Credit, AboutURL: h.opts.AboutURL}
+	for _, e := range h.opts.Examples {
+		out.Examples = append(out.Examples, exampleJSON{Title: e.Title, Note: e.Note, Text: e.Text, Tags: e.Tags,
+			From: e.From, To: e.To, LastSeconds: e.lastSeconds(), Limit: e.Limit})
 	}
 	if st.Entries > 0 {
 		first, last := time.Unix(0, st.MinUnixNano).UTC(), time.Unix(0, st.MaxUnixNano).UTC()

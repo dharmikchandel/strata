@@ -43,10 +43,19 @@ Results from different segments are merged into timestamp order.
 
 ## Try it
 
-You need Docker and Go 1.26 or later.
+You need Docker and Go 1.26 or later. `make` lists every shortcut below.
 
 ```sh
-docker compose up -d --build        # Strata + a local S3-compatible store (RustFS)
+make up                      # Strata + a local S3-compatible store (RustFS) + a stream of generated logs
+make ui                      # the search page: http://127.0.0.1:7080
+make search Q="lapack"       # or search from the command line
+make clean                   # stop everything and delete the data
+```
+
+`make up` starts a small generator that sends made-up log lines to the server all the time, so there is always something to search. The lines are fake, but their shapes and frequencies come from the real BGL dataset (see [Generated traffic](#generated-traffic)). The longer-hand version, without the generator and using your own file:
+
+```sh
+docker compose up -d --build        # Strata + RustFS only
 
 # send some logs: any text file, one line per log line
 go run ./cmd/stratactl ingest -file app.log
@@ -84,9 +93,39 @@ read      26.4 MiB from storage | server time 133.45ms | round trip 139.2ms
 
 Two of 73 segments were read; the other 71 were ruled out by their bloom filters without being fetched.
 
-`docker compose down` stops everything and keeps the data; add `-v` to delete it. Everything is published on `127.0.0.1` only, because Strata has no TLS or authentication yet (see [Limitations](#limitations)).
+`make down` stops everything and keeps the data; `make clean` also deletes it (the plain `docker compose down` and `down -v` do the same). Everything is published on `127.0.0.1` only, because Strata has no TLS or authentication yet (see [Limitations](#limitations)).
 
 Strata itself is one static binary (`go build ./cmd/strata`). Every setting is a flag with an environment variable of the same meaning; `strata -h` lists them.
+
+## Generated traffic
+
+`strata-gen` sends fake logs at a chosen, steady rate, so Strata can be watched or tested under something like production load. It is also a test: every line ends with a marker (run id, stream, sequence number), and when a timed run finishes it searches for every line the server acknowledged and reports any that are missing or stored twice.
+
+```sh
+make up                      # profile demo: 20 lines/s, one stream
+make up PROFILE=busy         # 1,000 lines/s over 2 streams, 3x bursts, some late lines
+make up PROFILE=busy DURATION=10m    # stop sending after 10 minutes
+make soak DURATION=2m        # run in this terminal, then verify; exit status 2 if a line was lost
+```
+
+| profile | rate | what it models | stored per day |
+|---|---|---|---|
+| `demo` | 20 lines/s, 1 stream | a quiet service | about 0.4 GB |
+| `busy` | 1,000 lines/s, 2 streams, 3x bursts of 5s every minute, 2% late lines | a busy service | about 19 GB |
+| `peak` | 5,000 lines/s, 4 streams, 3x bursts of 5s every 30s, 5% late lines | a heavy day | about 97 GB |
+
+Individual settings (`-rate`, `-sources`, `-burst-factor`, `-late-fraction`, `-seed`, and others) override the profile; `strata-gen -h` lists them. Strata has no retention, so `busy` and `peak` fill the disk: use `DURATION` or `make clean`.
+
+How it behaves when things go wrong:
+
+- **The pace does not depend on the server.** Lines are scheduled by the clock, so a slow server cannot silently reduce the load; the generator falls behind visibly instead (the progress line shows the backlog).
+- **A full server buffer is backed off from**, not hammered: the generator waits (50ms, doubling up to 2s) and retries.
+- **A broken connection is reconnected and the batch resent**, so a line can be stored twice. The verifier counts these as duplicates, which is the at-least-once behaviour described in [Limitations](#limitations).
+- **Late lines** (timestamps in the past) exercise the time-range index with segments whose ranges overlap.
+
+Measured once, on the development machine: with the `busy` profile for 45 to 70 seconds and the server killed with `SIGKILL` mid-run and restarted, the verifier reported 500, 4,200 and 4,800 acknowledged lines lost (out of 70,008, 45,004 and 45,000), with no duplicates. Each loss was one contiguous range of sequence numbers per stream, which is what the no-write-ahead-log limitation predicts: lines acknowledged but not yet sealed. These are three runs on one machine, not a benchmark.
+
+The generator is written in Go, like the rest of the project: it shares the generated gRPC client code, and it has to pace tens of thousands of lines per second precisely while checking results, which a scripting language would do less steadily.
 
 ## Benchmarks
 
@@ -214,6 +253,7 @@ Stated plainly, because they matter:
 cmd/strata         the server binary
 cmd/stratactl      client: ingest, search, and a minimal web page
 cmd/strata-bench   the benchmark harness
+cmd/strata-gen     the generated-traffic sender and verifier
 internal/segment   the segment file format (header, lines, index, bloom filter)
 internal/bloom     bloom filter
 internal/storage   storage interface; S3 implementation
@@ -223,17 +263,19 @@ internal/query     query engine and the gRPC search service
 internal/compact   compaction and garbage collection
 internal/app       configuration, startup, graceful shutdown
 internal/bench     dataset parser and statistics for the benchmarks
+internal/gen       load schedule, fake log content, sending and verification
 proto, gen         the gRPC schema and its generated Go code
 e2e                end-to-end tests of the Docker setup
+Makefile           shortcuts for running, testing and cleaning up
 ```
 
 ## Tests
 
 ```sh
-go test ./...                     # unit and integration tests
-docker compose up -d              # the S3 tests need the local object store;
-go test -race ./...               #   without it they are skipped, not failed
-go test -tags e2e -timeout 15m ./e2e   # builds the image and tests the real containers
+make server                       # the S3 tests need the local object store;
+make test                         #   without it they are skipped, not failed
+make check                        # gofmt, go vet and the tests (race detector on)
+make test-e2e                     # builds the image and tests the real containers
 ```
 
 The tests include crash simulations (a child process killed with `SIGKILL` in the middle of a manifest transaction), concurrency tests under the race detector, and a fuzz test of the segment decoder.

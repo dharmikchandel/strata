@@ -12,9 +12,12 @@ RUN go mod download
 
 COPY . .
 
-# CGO_ENABLED=0: the SQLite driver is pure Go, so this is a static binary.
+# CGO_ENABLED=0: the SQLite driver is pure Go, so these are static binaries.
+# strata-gen (the traffic generator) is built into the same image so that compose
+# can run it next to the server; it is not started unless asked.
 # The server runs as an unprivileged user and keeps its state in /data.
 RUN CGO_ENABLED=0 go build -o /usr/local/bin/strata ./cmd/strata \
+    && CGO_ENABLED=0 go build -o /usr/local/bin/strata-gen ./cmd/strata-gen \
     && useradd --system --no-create-home strata \
     && mkdir /data && chown strata /data
 

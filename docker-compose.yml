@@ -54,6 +54,31 @@ services:
     stop_grace_period: 40s
     restart: unless-stopped
 
+  # Realistic made-up traffic for the server above, sent continuously, so there is
+  # always something fresh to search. Opt-in: it only starts with the "live"
+  # profile (`make up` does that), so plain `docker compose up`, the benchmarks
+  # and the end-to-end tests see an otherwise empty server.
+  #
+  # It keeps adding data: about 0.4 GB a day at the default "demo" rate, far more
+  # for "busy" and "peak". Strata has no retention yet, so delete the data
+  # (docker compose down -v) when you are done.
+  generator:
+    build: .
+    profiles: ["live"]
+    entrypoint: ["strata-gen"]
+    environment:
+      STRATA_GEN_ADDR: strata:7070
+      STRATA_GEN_PROFILE: ${GEN_PROFILE:-demo} # demo, busy or peak
+      STRATA_GEN_RATE: ${GEN_RATE:-} # empty means the profile's own rate
+      STRATA_GEN_DURATION: ${GEN_DURATION:-} # empty means run until stopped
+    depends_on:
+      strata:
+        condition: service_healthy
+    healthcheck:
+      disable: true # the image's check is for the server, not for this
+    restart: on-failure # a finished (timed) run stays finished; a crash is retried
+    stop_grace_period: 40s # delivers what is already due, then exits
+
 volumes:
   rustfs-data:
   strata-data:

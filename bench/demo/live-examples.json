@@ -1,0 +1,28 @@
+[
+  {
+    "title": "A rare word",
+    "note": "\"lapack\" turns up in about one line in 7,000, so bloom filters rule out nearly every segment without opening it.",
+    "text": "lapack",
+    "limit": 20
+  },
+  {
+    "title": "The last five minutes",
+    "note": "Only the newest segments overlap this window; every older one is ruled out by its time range.",
+    "text": "error",
+    "last": "5m",
+    "limit": 20
+  },
+  {
+    "title": "Fatal lines in the last hour",
+    "note": "A tag filter and a time window together.",
+    "tags": {"level": "FATAL"},
+    "last": "1h",
+    "limit": 20
+  },
+  {
+    "title": "A common word, all history",
+    "note": "Most segments contain it, so most are read. The slow case, on purpose.",
+    "text": "core",
+    "limit": 20
+  }
+]

@@ -1,0 +1,3508 @@
+{
+"source": "BGL (LogHub), Oliner and Stearley, DSN 2007",
+"lines": 4747963,
+"distinct_templates": 25709,
+"covered_lines": 4559541,
+"templates": [
+{
+"weight": 1706751,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "generating core.{n}"
+},
+{
+"weight": 295764,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} double-hummer alignment exceptions"
+},
+{
+"weight": 267725,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} floating point alignment exceptions"
+},
+{
+"weight": 201206,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "CE sym {n}, at {hex}, mask {hex}"
+},
+{
+"weight": 152734,
+"label": "KERNDTLB",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data TLB error interrupt"
+},
+{
+"weight": 135092,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} microseconds spent in the rbs signal handler during {n} calls. {n} microseconds was the maximum time for a single instance of a correctable ddr."
+},
+{
+"weight": 135092,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} total interrupts. {n} critical input interrupts. {n} microseconds total spent on critical input interrupts, {n} microseconds max time in a critical input interrupt."
+},
+{
+"weight": 105924,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "instruction cache parity error corrected"
+},
+{
+"weight": 84168,
+"label": "-",
+"component": "MMCS",
+"level": "ERROR",
+"text": "idoproxydb hit ASSERT condition: ASSERT expression={n} Source file=idotransportmgr.cpp Source line={n} Function=int IdoTransportMgr::SendPacket(IdoUdpMgr*, BglCtlPavTrace*)"
+},
+{
+"weight": 63491,
+"label": "KERNSTOR",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data storage interrupt"
+},
+{
+"weight": 54790,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}c{n}c"
+},
+{
+"weight": 47563,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "instruction address: {hex}"
+},
+{
+"weight": 39457,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Received signal {n}, code={n}, errno={n}, address={hex}"
+},
+{
+"weight": 33939,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} ddr errors(s) detected and corrected on rank {n}, symbol {n}, bit {n}"
+},
+{
+"weight": 33933,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": ""
+},
+{
+"weight": 28485,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "total of {n} ddr error(s) detected and corrected"
+},
+{
+"weight": 26546,
+"label": "APPSEV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix on CioStream socket to {n}.{n}.{n}.{n}:{n}, Link has been severed"
+},
+{
+"weight": 26426,
+"label": "KERNMNTF",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Lustre mount FAILED : bglio{n} : point /p/gb{n}"
+},
+{
+"weight": 22175,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "Kernel detected {n} integer alignment exceptions ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex} ({n}) iar {hex}, dear {hex}"
+},
+{
+"weight": 20480,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/scaletest/performance/MINIBEN/mb_{n}_{n}/allreduce.rts: invalid or missing program image, Exec format error"
+},
+{
+"weight": 18587,
+"label": "KERNTERM",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts: kernel terminated for reason {n}"
+},
+{
+"weight": 18233,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}e{n}c"
+},
+{
+"weight": 17364,
+"label": "-",
+"component": "DISCOVERY",
+"level": "WARNING",
+"text": "Node card is not fully functional"
+},
+{
+"weight": 17305,
+"label": "-",
+"component": "DISCOVERY",
+"level": "SEVERE",
+"text": "Can not get assembly information for node card"
+},
+{
+"weight": 16896,
+"label": "-",
+"component": "DISCOVERY",
+"level": "ERROR",
+"text": "Node card status: no ALERTs are active. Clock Mode is Low. Clock Select is Midplane. Phy JTAG Reset is asserted. ASIC JTAG Reset is asserted. Temperature Mask is not active. No temperature error. Temperature Limit Error Latch is clear. PGOOD IS NOT ASSERTED. PGOOD ERROR LATCH IS ACTIVE. MPGOOD IS NOT OK. MPGOOD ERROR LATCH IS ACTIVE. The {n}.{n} volt rail is OK. The {n}.{n} volt rail is OK."
+},
+{
+"weight": 16790,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}dc dear {n}c{n}c"
+},
+{
+"weight": 15440,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}c"
+},
+{
+"weight": 15273,
+"label": "APPSEV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix after LOAD_MESSAGE on CioStream socket to {n}.{n}.{n}.{n}:{n}: Link has been severed"
+},
+{
+"weight": 14497,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data address: {hex}"
+},
+{
+"weight": 14481,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "MACHINE CHECK DCR read timeout (mc=e{n}x iar {hex} lr {hex})"
+},
+{
+"weight": 14355,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "machine check: i-fetch......................{n}"
+},
+{
+"weight": 14351,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "exception syndrome register: {hex}"
+},
+{
+"weight": 13941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "data cache search parity error detected. attempting to correct"
+},
+{
+"weight": 13038,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "floating pt ex mode {n} enable......{n}"
+},
+{
+"weight": 12480,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/germann{n}/BGL-demo/SPaSM_mpi"
+},
+{
+"weight": 11840,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}c"
+},
+{
+"weight": 11088,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/bgl/apps/SWL/performance/MINIBEN///{n}.{n}.{n}-{n}.{n}.{n}) failed: No such file or directory"
+},
+{
+"weight": 10436,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} ddr error(s) detected and corrected on rank {n}, symbol {n} over {n} seconds"
+},
+{
+"weight": 10415,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "total of {n} ddr error(s) detected and corrected over {n} seconds"
+},
+{
+"weight": 10258,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: illegal instruction......{n}"
+},
+{
+"weight": 9000,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}c"
+},
+{
+"weight": 7847,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} tree receiver {n} in re-synch state event(s) (dcr {hex}) detected"
+},
+{
+"weight": 7694,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "suppressing further interrupts of same type"
+},
+{
+"weight": 6561,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "wait state enable.................{n}"
+},
+{
+"weight": 6556,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "critical input interrupt enable...{n}"
+},
+{
+"weight": 6553,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "external input interrupt enable...{n}"
+},
+{
+"weight": 6543,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "problem state ({n}=sup,{n}=usr).......{n}"
+},
+{
+"weight": 6538,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "floating point instr. enabled.....{n}"
+},
+{
+"weight": 6535,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "machine check enable..............{n}"
+},
+{
+"weight": 6521,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "debug wait enable.................{n}"
+},
+{
+"weight": 6518,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "debug interrupt enable............{n}"
+},
+{
+"weight": 6511,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "machine state register: {hex}"
+},
+{
+"weight": 6503,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "instruction address space.........{n}"
+},
+{
+"weight": 6500,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data address space................{n}"
+},
+{
+"weight": 6492,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "disable store gathering..................{n}"
+},
+{
+"weight": 6443,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: pollControlDescriptors: Detected the debugger died."
+},
+{
+"weight": 6428,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "core configuration register: {hex}"
+},
+{
+"weight": 6321,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}db{n}c"
+},
+{
+"weight": 6208,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}c{n}dc"
+},
+{
+"weight": 6162,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: privileged instruction...{n}"
+},
+{
+"weight": 6162,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: trap instruction.........{n}"
+},
+{
+"weight": 6162,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "floating point operation....................{n}"
+},
+{
+"weight": 6162,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "store operation.............................{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data store interrupt caused by dcbf.........{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "data store interrupt caused by icbi.........{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "auxiliary processor.........................{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: unimplemented operation..{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "byte ordering exception.....................{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: imprecise exception......{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: fp cr update.............{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: fp compare...............{n}"
+},
+{
+"weight": 6161,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "program interrupt: fp cr field .............{n}"
+},
+{
+"weight": 6021,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}c{n}ec"
+},
+{
+"weight": 5983,
+"label": "APPREAD",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: failed to read message prefix on control stream (CioStream socket to {n}.{n}.{n}.{n}:{n}"
+},
+{
+"weight": 5683,
+"label": "APPSEV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix after LOGIN_MESSAGE on CioStream socket to {n}.{n}.{n}.{n}:{n}: Link has been severed"
+},
+{
+"weight": 5558,
+"label": "-",
+"component": "DISCOVERY",
+"level": "ERROR",
+"text": "Found invalid node ecid in processor card slot J{n}, ecid {n}"
+},
+{
+"weight": 5513,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}"
+},
+{
+"weight": 5120,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/VNM/{n}K/vnm.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 5105,
+"label": "KERNMNTF",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Lustre mount FAILED : bglio{n} : block_id : location"
+},
+{
+"weight": 4869,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}"
+},
+{
+"weight": 4733,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}b{n}c"
+},
+{
+"weight": 4534,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} L{n} EDRAM error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 4527,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}e{n}"
+},
+{
+"weight": 4480,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ac dear {n}c"
+},
+{
+"weight": 4306,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/swl-prep/ibm-swl/functional/sppm_chkpt/run/sppm"
+},
+{
+"weight": 4276,
+"label": "-",
+"component": "MMCS",
+"level": "ERROR",
+"text": "Ido packet timeout"
+},
+{
+"weight": 4102,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/germann{n}/SPaSM_static) failed: No such file or directory"
+},
+{
+"weight": 4094,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}fee{n}c{n}c"
+},
+{
+"weight": 4092,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}fee{n}d{n}c"
+},
+{
+"weight": 4059,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}c"
+},
+{
+"weight": 4032,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/yates//torus-latency.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 4032,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c{n} dear {n}c"
+},
+{
+"weight": 3983,
+"label": "KERNRTSP",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts panic! - stopping execution"
+},
+{
+"weight": 3976,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/stability/MDCASK/WORK/{n}/inferno: invalid or missing program image, Permission denied"
+},
+{
+"weight": 3896,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}b{n}c"
+},
+{
+"weight": 3854,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bec"
+},
+{
+"weight": 3854,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bfc"
+},
+{
+"weight": 3849,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bbc"
+},
+{
+"weight": 3849,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bcc"
+},
+{
+"weight": 3752,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}a{n}"
+},
+{
+"weight": 3664,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "instruction address: {hex}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "exception syndrome register: {hex}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "machine check: i-fetch......................{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: illegal instruction......{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: privileged instruction...{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: trap instruction.........{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "floating point operation....................{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "store operation.............................{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "data store interrupt caused by dcbf.........{n}"
+},
+{
+"weight": 3662,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "data store interrupt caused by icbi.........{n}"
+},
+{
+"weight": 3334,
+"label": "KERNTERM",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts: kernel terminated for reason {n}rts: bad message header: invalid cpu, type={n}, cpu={n}, index={n}, total={n}"
+},
+{
+"weight": 3149,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "L{n} DCACHE summary averages: #ofDirtyLines: {n} out of {n} #ofDirtyDblWord: {n} out of {n}"
+},
+{
+"weight": 3148,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} tree receiver {n} in re-synch state event(s) (dcr {hex}) detected over {n} seconds"
+},
+{
+"weight": 3120,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/yates//broadcast.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 3111,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}ac"
+},
+{
+"weight": 3072,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/greeno/_dev{n}/_pasci{n}/_hyperclaw.mf.rich/run/_jag_work/raptor.dev.new{n}d.BGL.CXX_XL.MPI.ex: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 3072,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/followup/RAPTOR/raptor.rel{n}"
+},
+{
+"weight": 3071,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/g/g{n}/spelce{n}/Linpack_SWL) failed: No such file or directory"
+},
+{
+"weight": 2952,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/stella/SPPM/{n}/sppm_DD: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2916,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}cc"
+},
+{
+"weight": 2912,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program IMB-MPI{n}.{n}KB_perf"
+},
+{
+"weight": 2842,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}f{n}c"
+},
+{
+"weight": 2836,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}"
+},
+{
+"weight": 2735,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/glosli/src/ddcMD/ddcMD{n}.{n}.{n}a/bin/ddcMDbglV"
+},
+{
+"weight": 2670,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "NFS Mount failed on bglio{n}, slept {n} seconds, retrying ({n})"
+},
+{
+"weight": 2646,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/germann{n}/BGL-demo) failed: No such file or directory"
+},
+{
+"weight": 2569,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: cpu {n} at treeaddr {n} sent unrecognized message {hex}"
+},
+{
+"weight": 2560,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/VNM/{n}K/vnm.rts"
+},
+{
+"weight": 2520,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}f{n}c"
+},
+{
+"weight": 2464,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/performance/MINIBEN//torus-latency.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 2432,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/hwstab/RAPTOR/temp/raptor: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 2400,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver x+ input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 2393,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "disable apu instruction broadcast........{n}"
+},
+{
+"weight": 2390,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "disable trace broadcast..................{n}"
+},
+{
+"weight": 2387,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "guaranteed instruction cache block touch.{n}"
+},
+{
+"weight": 2386,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "guaranteed data cache block touch........{n}"
+},
+{
+"weight": 2386,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "force load/store alignment...............{n}"
+},
+{
+"weight": 2386,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "icache prefetch depth....................{n}"
+},
+{
+"weight": 2385,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "icache prefetch threshold................{n}"
+},
+{
+"weight": 2375,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}c{n}"
+},
+{
+"weight": 2368,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/germann{n}/SPaSM_static/SPaSM_mpi"
+},
+{
+"weight": 2359,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}d{n}"
+},
+{
+"weight": 2315,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "general purpose registers:"
+},
+{
+"weight": 2313,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "special purpose registers:"
+},
+{
+"weight": 2278,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Message code {n} is not {n} or {n}"
+},
+{
+"weight": 2272,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}a{n}c"
+},
+{
+"weight": 2258,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "auxiliary processor.........................{n}"
+},
+{
+"weight": 2256,
+"label": "APPRES",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix on CioStream socket to {n}.{n}.{n}.{n}:{n}, Connection reset by peer"
+},
+{
+"weight": 2187,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts internal error"
+},
+{
+"weight": 2158,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}c{n}c"
+},
+{
+"weight": 2134,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}c"
+},
+{
+"weight": 2112,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/glosli/src/ddcMD/ddcMD{n}.{n}.{n}/bin/ddcMDbglV"
+},
+{
+"weight": 2056,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(pwd) failed: No such file or directory"
+},
+{
+"weight": 2051,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n}feaa{n}a{n} {n}:{n} {n}:{n} {n}:{n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n}ce {n}:{n} {n}:{n}eeeeeee {n}:{n}feaa{n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n}ce {n}:ffffffff {n}:{n} {n}:{n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n} {n}:{n}feaa{n}b{n} {n}:{n} {n}:{n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n}feaa{n}b{n} {n}:{n} {n}:{n}ce {n}:{n}feaa{n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "lr:{n}ed{n} cr:{n} xer:{n} ctr:{n}"
+},
+{
+"weight": 2048,
+"label": "APPSEV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix after VERSION_MESSAGE on CioStream socket to {n}.{n}.{n}.{n}:{n}: Link has been severed"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/da/mpi-testscripts/alltoall"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/p/bg{n}/da) failed: No such file or directory"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/swl-prep/rky-swl/MPI-PERF/IMB/perf_tests/IMB-MPI{n}.{n}MB: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/vnm.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/EPStreamTriad.{n}K.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/opt_co_dc.rts"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/hpcc-{n}.{n}.{n}.{n}_opt_cpm_essl"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/fft_only.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/RAPTOR/pre-study/raptor.newcomp.r{n}: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2048,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}d{n} {n}bfa{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 2048,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/spelce{n}/Tuned/SPaSM-base/rundir/SPaSM.baseline: invalid or missing program image, Permission denied"
+},
+{
+"weight": 2047,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n} {n}:{n}e{n} {n}:{n}ed{n}bd{n} {n}:{n}b{n}bf{n}"
+},
+{
+"weight": 1991,
+"label": "APPTO",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error reading message prefix on CioStream socket to {n}.{n}.{n}.{n}:{n}, Connection timed out"
+},
+{
+"weight": 1987,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver z- input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 1943,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "machine state register: {hex}"
+},
+{
+"weight": 1943,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}bc"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: unimplemented operation..{n}"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "byte ordering exception.....................{n}"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: imprecise exception......{n}"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: fp cr update.............{n}"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: fp compare...............{n}"
+},
+{
+"weight": 1941,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "program interrupt: fp cr field .............{n}"
+},
+{
+"weight": 1920,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(RUNS/{n}Bvn_fmm/rs{n}) failed: No such file or directory"
+},
+{
+"weight": 1905,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver y+ input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 1898,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}f{n}c{n}c"
+},
+{
+"weight": 1896,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/stability/HPL/WORK/{n}./hpl_DD: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1821,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}fc"
+},
+{
+"weight": 1790,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}b{n}c{n}c"
+},
+{
+"weight": 1737,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}ec"
+},
+{
+"weight": 1712,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/yates/SWL_tests/BGL{n}k_SWL_tests_develop/MPI-VAL/MPITs_v{n}/rundir) failed: No such file or directory"
+},
+{
+"weight": 1646,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n} {n}:{n} {n}:{n} {n}:{n}"
+},
+{
+"weight": 1572,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}dc"
+},
+{
+"weight": 1548,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/p/gb{n}/draeger/benchmark/dat{n}k_{n}) failed: No such file or directory"
+},
+{
+"weight": 1543,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}d{n} dear {n}b{n}c"
+},
+{
+"weight": 1540,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bc"
+},
+{
+"weight": 1506,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program IMB-MPI{n}.{n}MB_perf"
+},
+{
+"weight": 1503,
+"label": "KERNMICRO",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Microloader Assertion"
+},
+{
+"weight": 1469,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver z+ input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 1447,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver x- input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 1422,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ac"
+},
+{
+"weight": 1408,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n}c dear {n}f{n}c"
+},
+{
+"weight": 1384,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/stability/NEWS{n}/news{n}_DD: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1344,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/auselton/testing) failed: No such file or directory"
+},
+{
+"weight": 1327,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} L{n} EDRAM error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 1315,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus z- wire"
+},
+{
+"weight": 1314,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ddr: activating redundant bit steering: rank={n} symbol={n}"
+},
+{
+"weight": 1298,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ba{n} dear {n}de{n}c"
+},
+{
+"weight": 1280,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/stella/UMT{n}K/{n}/umt{n}k_DD: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1279,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver y- input pipe error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 1206,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}f{n}c{n}c"
+},
+{
+"weight": 1200,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/germann{n}/SPaSM_mini/DSMC/r{n}"
+},
+{
+"weight": 1173,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ea{n} dear {n}c{n}c"
+},
+{
+"weight": 1169,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}a{n} dear {n}"
+},
+{
+"weight": 1152,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/germann{n}/SPaSM_static/SPaSM_mpi"
+},
+{
+"weight": 1145,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/swl-prep/ibm-swl/functional/umt{n}k_chkpt/ckpt_umt{n}k_src/umt{n}k"
+},
+{
+"weight": 1141,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus z+ wire"
+},
+{
+"weight": 1139,
+"label": "KERNTERM",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts: kernel terminated for reason {n}rts: bad message header: expecting type {n}, type={n}, cpu={n}, index={n}, total={n}"
+},
+{
+"weight": 1136,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/stella/SPASM/{n}/spasm_DD: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1135,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ba{n} dear {n}dd{n}c"
+},
+{
+"weight": 1114,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}dc"
+},
+{
+"weight": 1112,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}"
+},
+{
+"weight": 1101,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}ce{n}c"
+},
+{
+"weight": 1100,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}"
+},
+{
+"weight": 1086,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}cb{n}c"
+},
+{
+"weight": 1083,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for tree C{n} wire"
+},
+{
+"weight": 1064,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}e{n}ac"
+},
+{
+"weight": 1064,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}cd{n}c"
+},
+{
+"weight": 1055,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}fc dear {n}f{n}c"
+},
+{
+"weight": 1025,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/rfisher/sodscaling/_{n}partition/flash{n}"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Error opening node map file /p/gb{n}/welcome{n}/{n}k_{n}x{n}x{n}_{n}x{n}x{n}.map, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /p/gb{n}/welcome{n}/{n}k_{n}x{n}x{n}_{n}x{n}x{n}.map: Bad file descriptor"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Missing or invalid fields on line {n} of node map file /home/auselton/bgl/{n}mps.sequential.mapfile"
+},
+{
+"weight": 1024,
+"label": "APPUNAV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /home/auselton/bgl/{n}mps.sequential.mapfile: Resource temporarily unavailable"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/scaletest/stability/MDCASK/WORK/{n}/inferno: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/scaletest/performance/IMB_{n}.{n}_{n}_{n}K/IMB-MPI{n}.gp{n}"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/scaletest/performance/IMB_{n}.{n}_{n}_{n}K/IMB-MPI{n}.gp{n}_perf"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Missing or invalid fields on line {n} of node map file /home/auselton/bgl/mapfiles/bgl.{n}mps.f{n}.map"
+},
+{
+"weight": 1024,
+"label": "APPUNAV",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /home/auselton/bgl/mapfiles/bgl.{n}mps.f{n}.map: Resource temporarily unavailable"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/germann{n}/SPaSM_static/SPaSM_mpi: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/p/gb{n}/greeno/_raptor.test/) failed: No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/spelce{n}/UMT{n}K/umt{n}k/ckpt_umt{n}k_src/TEST/NEW_TEST) failed: No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/linpack{n}/xhpl_{n}_no_fold: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/TomAndJeff/bin/tested_copro/tested_copro.rts"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/TomAndJeff/bin/untested_copro/untested_copro.rts"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/spelce{n}/sppm_lnkck/DIR{n}/run) failed: No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/Gunnels/VNM{n}/vnm.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/cop.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/COP/FFTW_OPT/cop.rts"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/SPASM/spasm.{n}: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/MINIBEN/MB_{n}_{n}/bandwidth.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/MINIBEN/MB_{n}_{n}/torus-latency.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/vnm.rts"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/RAPTOR/current_brian.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/RAPTOR/new.raptor.trace: invalid or missing program image, Exec format error"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/rfisher/sodscaling/flash{n}"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/rfisher/sodscaling/flash{n}.noio"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/bwallen/oldcode_newkernel.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/bcastV{n}R{n}.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/rfisher/sodscaling/flash{n}: program image too big, {n} > {n}"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/new_vnm.rts"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/bwallen/brian_{n}point{n}.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading allreduce_double_V{n}R{n}.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading allreduce_int_V{n}R{n}.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}e {n}aff{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/hpcc-{n}.{n}.{n}.{n}_opt_essl_cpm: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/hpcc-{n}.{n}.{n}.{n}_vnm_essl_cpm: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/hpcc-{n}.{n}.{n}.{n}_opt_essl_vnm: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/EPStreamTriad.{n}R.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/RandomAccess.{n}R.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home.old/glosli/src/ddcMD/ddcMD{n}.{n}.{n}a/bin/ddcMDGbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ea{n} dear {n}f{n}c"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/followup/SPaSM_static/SPaSM_mpi.new_comp"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/SPaSM_static/SPaSM_mpi.rel{n}: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/SPaSM_static/SPaSM.V{n}R{n}M{n}: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading -mode VN: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/light{n}/sppm_chkpt/sppm: not a CNK program image"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/glosli/src/ddcMD/ddcMD{n}.{n}.{n}/bin/ddcMDbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /g/g{n}/glosli/src/ddcMD/ddcMD{n}.{n}.{n}tuned/bin/ddcMDbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1024,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/rfisher/FLASH{n}/object/flash{n}"
+},
+{
+"weight": 1018,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}ac"
+},
+{
+"weight": 1018,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}cc"
+},
+{
+"weight": 1016,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus y+ wire"
+},
+{
+"weight": 1016,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/functional/linpack-{n}x{n}-rel{n}/xhpl.{n}: invalid or missing program image, Permission denied"
+},
+{
+"weight": 1015,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/followup/hellow/a.out.{n}"
+},
+{
+"weight": 1008,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/yates//bandwidth.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1008,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/performance/MINIBEN//bandwidth.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 1008,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/followup/SPaSM_static/SPaSM_mpi.rel{n}"
+},
+{
+"weight": 1004,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ccfc"
+},
+{
+"weight": 1004,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}dd{n}c"
+},
+{
+"weight": 999,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}dc"
+},
+{
+"weight": 993,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n}c dear {n}ce{n}c"
+},
+{
+"weight": 990,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}cd{n}c"
+},
+{
+"weight": 974,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}ce{n}c"
+},
+{
+"weight": 973,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}c{n}c"
+},
+{
+"weight": 972,
+"label": "-",
+"component": "MONITOR",
+"level": "FAILURE",
+"text": "Temperature Over Limit on link card"
+},
+{
+"weight": 964,
+"label": "-",
+"component": "LINKCARD",
+"level": "INFO",
+"text": "MidplaneSwitchController performing bit sparing on {node} bit {n}"
+},
+{
+"weight": 952,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}cb{n}c"
+},
+{
+"weight": 947,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}c{n}"
+},
+{
+"weight": 936,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}cf{n}c"
+},
+{
+"weight": 933,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}fc"
+},
+{
+"weight": 927,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n}c dear {n}cf{n}c"
+},
+{
+"weight": 920,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}ef{n}"
+},
+{
+"weight": 918,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}f{n}a{n}c"
+},
+{
+"weight": 898,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}dc dear {n}a{n}c"
+},
+{
+"weight": 870,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}de{n}c"
+},
+{
+"weight": 868,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver x+ input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 862,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}dc"
+},
+{
+"weight": 861,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for tree C{n} wire, suppressing further interrupts of same type"
+},
+{
+"weight": 856,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}"
+},
+{
+"weight": 851,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus x- wire"
+},
+{
+"weight": 843,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ec"
+},
+{
+"weight": 835,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "fpr{n}={hex} ffffffff ffffffff ffffffff"
+},
+{
+"weight": 828,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}ec"
+},
+{
+"weight": 826,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}cd{n}c"
+},
+{
+"weight": 819,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}cd{n}c"
+},
+{
+"weight": 818,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}a{n}"
+},
+{
+"weight": 816,
+"label": "APPOUT",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/p/gb{n}/stella/RAPTOR/{n}) failed: Input/output error"
+},
+{
+"weight": 802,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for tree A{n} wire"
+},
+{
+"weight": 802,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}e{n} dear {n}b{n}"
+},
+{
+"weight": 799,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}f{n}c"
+},
+{
+"weight": 794,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}b{n}"
+},
+{
+"weight": 788,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}ccfc"
+},
+{
+"weight": 778,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}b{n}"
+},
+{
+"weight": 776,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}a{n}c"
+},
+{
+"weight": 772,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}a{n}c"
+},
+{
+"weight": 770,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}e{n}d{n}"
+},
+{
+"weight": 770,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}f{n}f{n}c"
+},
+{
+"weight": 768,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/glosli/src/ddcMD/ddcMD{n}.{n}.{n}/bin/ddcMDbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 768,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/greeno/raptor.new.dev.{n}d.BGL.CXX_XL.MPI.ex: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 768,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/COP/{n}K/EPStreamTriad.{n}R.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 752,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}c"
+},
+{
+"weight": 751,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver z- input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 747,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}cd{n}c"
+},
+{
+"weight": 728,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}cf{n}c"
+},
+{
+"weight": 720,
+"label": "KERNMNT",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error: unable to mount filesystem"
+},
+{
+"weight": 720,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}e{n}f{n}"
+},
+{
+"weight": 717,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}d{n}"
+},
+{
+"weight": 714,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}f{n}"
+},
+{
+"weight": 712,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}e{n} dear {n}a{n}"
+},
+{
+"weight": 704,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}f{n}bd{n}c"
+},
+{
+"weight": 704,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}bd{n}c"
+},
+{
+"weight": 704,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}d{n} dear {n}f{n}bd{n}c"
+},
+{
+"weight": 694,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus x+ wire"
+},
+{
+"weight": 688,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ccec"
+},
+{
+"weight": 679,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}f{n}c{n}ac"
+},
+{
+"weight": 673,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ee{n} dear {n}a{n}"
+},
+{
+"weight": 667,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}a{n}bc"
+},
+{
+"weight": 658,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}fc dear {n}b{n}"
+},
+{
+"weight": 652,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ae{n}c"
+},
+{
+"weight": 649,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}f{n}f{n}c"
+},
+{
+"weight": 649,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus z- wire, suppressing further interrupts of same type"
+},
+{
+"weight": 648,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}f{n}"
+},
+{
+"weight": 643,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}fd{n}"
+},
+{
+"weight": 640,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/germann{n}/BGL-demo/SPaSM_mpi"
+},
+{
+"weight": 639,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}b{n}"
+},
+{
+"weight": 629,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}d{n} dear {n}ccfc"
+},
+{
+"weight": 627,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}a{n}"
+},
+{
+"weight": 627,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver y+ input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 617,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus z+ wire, suppressing further interrupts of same type"
+},
+{
+"weight": 616,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/LAPACK_{n}d/TESTING) failed: No such file or directory"
+},
+{
+"weight": 615,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}b{n}c"
+},
+{
+"weight": 602,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}fc dear {n}b{n}c"
+},
+{
+"weight": 592,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/scaletest/performance/linpack-{n}x{n}/xhpl: invalid or missing program image, Permission denied"
+},
+{
+"weight": 592,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}ccec"
+},
+{
+"weight": 591,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}e{n} dear {n}"
+},
+{
+"weight": 586,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}cf{n}c"
+},
+{
+"weight": 579,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}f{n}c{n}c"
+},
+{
+"weight": 576,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Y coordinate {n} exceeds physical dimension {n} at line {n} of node map file /home/pakin{n}/sweep{n}d-{n}.{n}b/results/random{n}-{n}x{n}x{n}x{n}.map"
+},
+{
+"weight": 576,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /home/pakin{n}/sweep{n}d-{n}.{n}b/results/random{n}-{n}x{n}x{n}x{n}.map: Permission denied"
+},
+{
+"weight": 575,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ba{n} dear {n}ddac"
+},
+{
+"weight": 569,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ee{n} dear {n}"
+},
+{
+"weight": 568,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /p/gb{n}/kubota/Chamonix{n}/inferno"
+},
+{
+"weight": 555,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ec dear {n}f{n}c"
+},
+{
+"weight": 550,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}c{n}"
+},
+{
+"weight": 547,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "r{n}={hex} r{n}={hex} r{n}={hex} r{n}={hex}"
+},
+{
+"weight": 546,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}cc dear {n}f{n}c"
+},
+{
+"weight": 544,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "CHECK_INITIAL_GLOBAL_INTERRUPT_VALUES"
+},
+{
+"weight": 543,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}b{n}ec"
+},
+{
+"weight": 537,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": ""
+},
+{
+"weight": 528,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/glosli/src/ddcMD/ddcMD{n}.{n}.{n}a/bin/ddcMDbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 516,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ab{n} dear {n}dd{n}c"
+},
+{
+"weight": 513,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "{n}:{n}c{n} {n}:{n} {n}:{n} {n}:{n}"
+},
+{
+"weight": 513,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}c{n}"
+},
+{
+"weight": 513,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /bgl/apps/SWL/stability/DDCMD//ddcMDbglV"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/draeger/testQboxhang-nozerobytebug-nosleepnocomm: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/draeger/testQboxhang-nozerobytebug-nosleepyescomm: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/glosli/src/ddcMD/ddcMD/{n}.{n}.{n}/ddcMDbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/welcome{n}/{n}k/miranda: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /p/gb{n}/spelce{n}/raptor.dev.new{n}d.BGL.CXX_XL.MPI.ex: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: duplicate canonical-rank {n} to logical-rank {n} mapping at line {n} of node map file /p/gb{n}/pakin{n}/sweep{n}d-{n}x{n}x{n}-{n}mk-{n}mmi-{n}pes-sweep/sweep.map"
+},
+{
+"weight": 512,
+"label": "APPBUSY",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /p/gb{n}/pakin{n}/sweep{n}d-{n}x{n}x{n}-{n}mk-{n}mmi-{n}pes-sweep/sweep.map: Device or resource busy"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: T coordinate {n} exceeds physical dimension {n} at line {n} of node map file /p/gb{n}/pakin{n}/sweep{n}d-{n}x{n}x{n}-{n}mk-{n}mmi-{n}pes-xyzt/xyzt.map"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /p/gb{n}/pakin{n}/sweep{n}d-{n}x{n}x{n}-{n}mk-{n}mmi-{n}pes-xyzt/xyzt.map: Block device required"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/glosli/src/ddcMD/ddcMD{n}.{n}.{n}/bin/ddcMDbglV: invalid or missing program image, Exec format error"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Z coordinate {n} exceeds physical dimension {n} at line {n} of node map file /p/gb{n}/pakin{n}/contention-{n}cpes-torus/xyzt-{n}x{n}x{n}x{n}.map"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /p/gb{n}/pakin{n}/contention-{n}cpes-torus/xyzt-{n}x{n}x{n}x{n}.map: Bad address"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Z coordinate {n} exceeds physical dimension {n} at line {n} of node map file /home/pakin{n}/comms-conc/xyzt-{n}x{n}x{n}x{n}.map"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /home/pakin{n}/comms-conc/xyzt-{n}x{n}x{n}x{n}.map: Bad address"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/pakin{n}/contention: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: Error opening node map file /home/williams/miranda/src/vx_{n}k_{n}x{n}x{n}_{n}x{n}x{n}.map, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error creating node map from file /home/williams/miranda/src/vx_{n}k_{n}x{n}x{n}_{n}x{n}x{n}.map: Bad file descriptor"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program IMB-MPI{n}.{n}B_perf"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/bglscratch/bwallen/SWL/SYS-CALLS/testcases/kernel/syscalls/write) failed: No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/yates/SWL_tests/BGL{n}k_SWL_tests_develop/MPI-PERF/IMB/perf_tests/IMB-MPI{n}.{n}B: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts: bad message header: expecting type {n} instead of type {n} (softheader={n}a{n}ed{n} {n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/swl-prep/rky-swl/MPI-PERF/IMB/perf_tests/IMB-MPI{n}.{n}KB: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/spelce{n}/HPCC_IBM/TomandJeff/bin/tested_copro) failed: No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "rts: bad message header: expecting type {n} instead of type {n} (softheader={n}db{n} {n}aa{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/TomAndJeff/bin/untested_vnm/untested_copro.rts: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/home/spelce{n}/HPCC_IBM/Urgent/FFTW/{n}) failed: No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/spelce{n}/HPCC_IBM/Urgent/Gunnels/COP{n}/vnm.rts: invalid or missing program image, Permission denied"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/SWL/stability/DDCMD//ddcMDbglV: invalid or missing program image, Permission denied"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /bgl/apps/followup/RAPTOR/raptor.{n}.noprint: invalid or missing program image, Permission denied"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home/cabot/miranova/bgl/bin_lukei?/miranda_newhack: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading ./ddcMDbglV: invalid or missing program image, Permission denied"
+},
+{
+"weight": 512,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: Error loading /home.old/glosli/src/ddcMD/ddcMD{n}.{n}.{n}/bin/ddcMDGbglV: invalid or missing program image, No such file or directory"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n} {n}a{n}d{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}f{n} {n}fff{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n} {n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}f{n}bb {n}b{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}ce{n}e{n} e{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 512,
+"label": "KERNREC",
+"component": "KERNEL",
+"level": "FATAL",
+"text": "Error receiving packet on tree network, expecting type {n} instead of type {n} (softheader={n}e {n}d{n} {n} {n}) PSR{n}={n}f{n} PSR{n}={n} PRXF={n} PIXF={n}"
+},
+{
+"weight": 510,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}da{n}c"
+},
+{
+"weight": 508,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}c{n}fc"
+},
+{
+"weight": 500,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus y+ wire, suppressing further interrupts of same type"
+},
+{
+"weight": 499,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}dadc"
+},
+{
+"weight": 497,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}daec"
+},
+{
+"weight": 494,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}a{n} dear {n}f{n}"
+},
+{
+"weight": 492,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ddr: activating redundant bit steering for next allocation: rank={n} symbol={n}"
+},
+{
+"weight": 491,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}a{n}c{n}"
+},
+{
+"weight": 490,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ba{n} dear {n}dddc"
+},
+{
+"weight": 480,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}bfa{n}c"
+},
+{
+"weight": 478,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}e{n}"
+},
+{
+"weight": 477,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}b{n}fc"
+},
+{
+"weight": 475,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}a{n}"
+},
+{
+"weight": 473,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}a{n} dear {n}b{n}"
+},
+{
+"weight": 469,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}dbac"
+},
+{
+"weight": 465,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}c{n}cc"
+},
+{
+"weight": 463,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c{n}c dear {n}de{n}c"
+},
+{
+"weight": 458,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}d{n}"
+},
+{
+"weight": 450,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}a{n} dear {n}d{n}"
+},
+{
+"weight": 448,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}e{n}b{n}"
+},
+{
+"weight": 448,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c{n} dear {n}ac"
+},
+{
+"weight": 447,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}c{n}c"
+},
+{
+"weight": 447,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}b{n}c{n}c"
+},
+{
+"weight": 447,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}b{n}cac"
+},
+{
+"weight": 447,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}b{n}cbc"
+},
+{
+"weight": 445,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver z+ input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 444,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} L{n} directory error(s) (dcr {hex}) detected and corrected"
+},
+{
+"weight": 443,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}a{n}ec"
+},
+{
+"weight": 439,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}bfa{n}c"
+},
+{
+"weight": 435,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver x- input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 428,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}ef{n}b{n}"
+},
+{
+"weight": 428,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}e{n}aac"
+},
+{
+"weight": 425,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}dbbc"
+},
+{
+"weight": 424,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}e{n}a{n}"
+},
+{
+"weight": 421,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}b{n} dear {n}ccfc"
+},
+{
+"weight": 420,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "critical input interrupt (unit={hex} bit={hex}): warning for torus y- wire"
+},
+{
+"weight": 419,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}cc"
+},
+{
+"weight": 418,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}f{n}c{n}"
+},
+{
+"weight": 418,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}d{n} dear {n}ccec"
+},
+{
+"weight": 417,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n} dear {n}ab{n}c"
+},
+{
+"weight": 410,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}dc dear {n}b{n}"
+},
+{
+"weight": 410,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}fa{n} dear {n}a{n}c"
+},
+{
+"weight": 410,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}fd{n} dear {n}a{n}c"
+},
+{
+"weight": 410,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c{n} dear {n}a{n}c"
+},
+{
+"weight": 408,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}f{n}b{n}"
+},
+{
+"weight": 405,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ee{n} dear {n}b{n}"
+},
+{
+"weight": 403,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}cddc"
+},
+{
+"weight": 403,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}cdec"
+},
+{
+"weight": 401,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}ccdc"
+},
+{
+"weight": 400,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}d{n}"
+},
+{
+"weight": 398,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}cecc"
+},
+{
+"weight": 398,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}cedc"
+},
+{
+"weight": 395,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: for node {n}, read continuation request but ioState is {n}"
+},
+{
+"weight": 395,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}aa{n} dear {n}de{n}c"
+},
+{
+"weight": 393,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}a{n} dear {n}a{n}"
+},
+{
+"weight": 392,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}efe{n}"
+},
+{
+"weight": 392,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "ciod: generated {n} core files for program /g/g{n}/germann{n}/SPaSM_mini/MEAM/r{n}"
+},
+{
+"weight": 391,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}d{n}c"
+},
+{
+"weight": 386,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "{n} torus receiver y- input pipe error(s) (dcr {hex}) detected and corrected over {n} seconds"
+},
+{
+"weight": 384,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/bglscratch/bwallen/SWL/SYS-CALLS/testcases/kernel/syscalls/link) failed: No such file or directory"
+},
+{
+"weight": 384,
+"label": "-",
+"component": "APP",
+"level": "FATAL",
+"text": "ciod: LOGIN chdir(/bglscratch/bwallen/SWL/SYS-CALLS/testcases/kernel/syscalls/open) failed: No such file or directory"
+},
+{
+"weight": 384,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ac dear {n}ec"
+},
+{
+"weight": 384,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c{n} dear {n}fc"
+},
+{
+"weight": 381,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bc{n} dear {n}cdac"
+},
+{
+"weight": 381,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}bd{n} dear {n}cdbc"
+},
+{
+"weight": 379,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n}c dear {n}a{n}"
+},
+{
+"weight": 379,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}f{n}bc"
+},
+{
+"weight": 377,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}f{n}e{n}"
+},
+{
+"weight": 377,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}aa{n} dear {n}dd{n}c"
+},
+{
+"weight": 375,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}ac"
+},
+{
+"weight": 374,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}f{n} dear {n}f{n}"
+},
+{
+"weight": 371,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}c dear {n}a{n}bc"
+},
+{
+"weight": 370,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}dc"
+},
+{
+"weight": 368,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}fe{n} dear {n}c{n}c"
+},
+{
+"weight": 368,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}ffc dear {n}c{n}c"
+},
+{
+"weight": 368,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}e{n} dear {n}cc"
+},
+{
+"weight": 364,
+"label": "-",
+"component": "KERNEL",
+"level": "INFO",
+"text": "iar {n}a{n} dear {n}a{n}d{n}"
+}
+]
+}

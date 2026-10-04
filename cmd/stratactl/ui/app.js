@@ -278,8 +278,15 @@ function fillForm(ex) {
   // Every field is set, so an example never inherits leftovers from the last one.
   form.elements.text.value = ex.text || '';
   form.elements.tag.value = Object.entries(ex.tags || {}).map(([k, v]) => k + '=' + v).join(' ');
-  form.elements.from.value = ex.from || '';
-  form.elements.to.value = ex.to || '';
+  if (ex.last_seconds) {
+    // "The last five minutes" is worked out when you click, from your clock's UTC
+    // time, to the minute (that is what the date field holds).
+    form.elements.from.value = new Date(Date.now() - ex.last_seconds * 1000).toISOString().slice(0, 16);
+    form.elements.to.value = '';
+  } else {
+    form.elements.from.value = ex.from || '';
+    form.elements.to.value = ex.to || '';
+  }
   form.elements.limit.value = ex.limit || 50;
   // Show the filters an example uses, so what ran is visible; fold them otherwise.
   setFiltersOpen(updateFiltersLabel() > 0);
@@ -380,3 +387,13 @@ if (window.matchMedia('(pointer: fine)').matches) form.elements.text.focus({prev
 
 updateFiltersLabel();
 loadOverview();
+
+// When data keeps arriving the line at the top should keep up: refresh the
+// counts (and the dates the pickers allow) while the page is open and visible.
+async function refreshCorpus() {
+  try {
+    const res = await fetch('/api/overview');
+    if (res.ok) renderCorpus((await res.json()).corpus);
+  } catch (_) { /* the next tick will try again */ }
+}
+setInterval(() => { if (document.visibilityState === 'visible') refreshCorpus(); }, 10000);
