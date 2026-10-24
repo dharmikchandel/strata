@@ -1,0 +1,51 @@
+.panel {
+  margin-top: var(--space-5); padding: var(--space-5) var(--space-5) 0;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  transition: opacity var(--dur) var(--ease-out);
+}
+/* While a new search runs the previous result stays, clearly out of date. */
+.panel[data-stale] { opacity: 0.45; }
+
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-5); flex-wrap: wrap; margin-bottom: var(--space-4); }
+.headline { font-size: var(--text-xl); line-height: 1.25; font-weight: 500; letter-spacing: -0.02em; text-wrap: balance; }
+.read { color: var(--read-text); font-weight: 600; }
+/* Orange means data was fetched; "Read nothing" fetched none. */
+.read[data-none] { color: var(--fg); }
+.timing { font-size: var(--text-xs); color: var(--fg-muted); white-space: nowrap; }
+
+/* The key to the strip, and what the search cost in time, on one line. */
+.keyRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-5); margin-top: var(--space-4); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); color: var(--fg-muted); }
+.legend li { display: inline-flex; align-items: center; gap: 0.5rem; }
+.legend b { color: var(--fg); font-weight: 500; }
+.legend li[data-zero] b { color: var(--fg-muted); font-weight: 400; }
+.legend li[data-zero] .swatch { opacity: 0.45; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; }
+.time { background: var(--time); }
+.bloom { background: var(--bloom); }
+.scanned { background: var(--read); }
+
+.more { margin: var(--space-5) calc(var(--space-5) * -1) 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; }
+.explain { border-top: 1px solid var(--line); }
+.more > :first-child { border-top: 0; }
+.explain summary {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem var(--space-5);
+  list-style: none; cursor: pointer; font-size: var(--text-sm); color: var(--fg-muted);
+}
+.explain summary::-webkit-details-marker { display: none; }
+@media (hover: hover) { .explain summary:hover { color: var(--fg); } }
+.chev { transition: transform var(--dur-fast); flex: none; }
+.explain[open] .chev { transform: rotate(90deg); }
+.explain dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1.25rem; margin: 0; padding: 0 var(--space-5) var(--space-5) calc(var(--space-5) + 1.5rem); font-size: var(--text-sm); }
+.explain dt { font-weight: 500; }
+.explain dd { margin: 0; color: var(--fg-muted); max-width: 68ch; }
+
+@media (max-width: 40rem) {
+  .panel { padding: var(--space-4) var(--space-4) 0; }
+  .more { margin: var(--space-4) calc(var(--space-4) * -1) 0; }
+  .explain summary { padding: 0.8rem var(--space-4); }
+  .explain dl { grid-template-columns: 1fr; padding: 0 var(--space-4) var(--space-4); }
+  .explain dt { margin-top: 0.25rem; }
+  .headline { font-size: var(--text-lg); }
+}
+@media (pointer: coarse) { .explain summary { min-height: 2.75rem; } }

@@ -100,7 +100,7 @@ func (h *uiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// hard: only its own scripts and styles may run, and nothing may frame it.
 	// Log lines are untrusted text; the page only ever renders them as text.
 	hd := w.Header()
-	hd.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+	hd.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'")
 	hd.Set("X-Content-Type-Options", "nosniff")
 	hd.Set("Referrer-Policy", "no-referrer")
 	h.mux.ServeHTTP(w, r)

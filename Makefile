@@ -31,7 +31,7 @@ GEN_FLAGS := -addr $(STRATA_ADDR) -profile $(PROFILE) $(if $(RATE),-rate $(RATE)
 UI_REPO   := https://github.com/dharmikchandel/strata\#readme
 
 .PHONY: help up server down clean ps logs ui ui-bgl search gen soak ingest-bgl \
-        build test test-e2e check fmt vet proto
+        build test test-e2e check fmt vet proto web-install web-dev web-build web-check
 
 help: ## Show this list
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[1m%-11s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -115,7 +115,27 @@ fmt: ## Fail if any Go file is not gofmt-formatted
 vet: ## go vet, including the end-to-end tests
 	go vet ./... && go vet -tags e2e ./e2e
 
-check: fmt vet test ## Formatting, vet and tests
+check: fmt vet web-check test ## Formatting, vet, the web page's checks and the tests
+
+##@ Web page (source in web/, built into cmd/stratactl/ui and committed)
+
+web-install: ## Install the web page's dependencies (needs Node 22 or later)
+	cd web && npm ci
+
+web-dev: ## Live-reloading page on http://127.0.0.1:5173, using the API of a running `make ui`
+	cd web && STRATA_UI=$(UI_ADDR) npx vite --host 127.0.0.1
+
+web-build: ## Rebuild the page into cmd/stratactl/ui (commit the result)
+	cd web && npx vite build
+
+# The built page is committed so that `go build` needs no Node. This fails when
+# that copy is out of date with web/: run `make web-build` and commit it.
+web-check: ## Type-check and test the page, and check the committed build is current
+	@test -d web/node_modules || { echo "web/node_modules is missing: run 'make web-install'"; exit 1; }
+	cd web && npx tsc --noEmit && npx vitest run
+	@out=$$(mktemp -d); trap 'rm -rf "$$out"' EXIT; \
+	  (cd web && STRATA_WEB_OUT=$$out npx vite build --logLevel error) && \
+	  diff -r "$$out" cmd/stratactl/ui >/dev/null || { echo "cmd/stratactl/ui is out of date with web/: run 'make web-build'"; exit 1; }
 
 proto: ## Regenerate the gRPC code after editing proto/
 	go run github.com/bufbuild/buf/cmd/buf@v1.73.0 generate

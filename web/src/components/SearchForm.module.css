@@ -1,0 +1,87 @@
+/* The search bar: one bordered instrument with the words field, the filters
+   and the action in a single row on wide screens. */
+.form { margin: 0; }
+.bar {
+  display: flex; align-items: stretch;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  transition: border-color var(--dur-fast);
+}
+.bar:focus-within { border-color: var(--line-strong); }
+
+.words { position: relative; flex: 1 1 18rem; min-width: 0; display: flex; align-items: center; }
+.searchIcon { position: absolute; left: 0.9rem; color: var(--fg-muted); pointer-events: none; }
+.words input {
+  width: 100%; height: 3.25rem; padding: 0 1rem 0 2.6rem;
+  border: 0; background: transparent; font-size: var(--text-md); outline: none;
+}
+.words:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
+
+.filters { display: flex; flex: 0 1 auto; min-width: 0; }
+.field {
+  display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  padding: 0 0.85rem; border-left: 1px solid var(--line); min-width: 0;
+}
+.field:focus-within { background: var(--bg-raised); }
+.caption { font-size: var(--text-2xs); color: var(--fg-muted); letter-spacing: 0.01em; white-space: nowrap; }
+.field input {
+  border: 0; padding: 0; background: transparent; outline: none; height: 1.4rem;
+  font-family: var(--font-mono); font-size: var(--text-sm); font-variant-numeric: tabular-nums;
+  width: 8.5rem;
+}
+.field input[name='from'], .field input[name='to'] { width: 9.6rem; }
+.limit input { width: 3.5rem; }
+.field input[aria-invalid] { color: var(--error); }
+.field:has(input[aria-invalid]) .caption { color: var(--error); }
+.field:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.submit {
+  flex: none; margin: 0.4rem; padding: 0 1.15rem; min-width: 6.5rem;
+  border: 0; border-radius: var(--radius); font-weight: 500;
+  background: var(--invert-bg); color: var(--invert-fg);
+  transition: background-color var(--dur-fast);
+}
+@media (hover: hover) { .submit:hover:not(:disabled) { background: var(--invert-hover); } }
+.submit:disabled { opacity: 0.6; cursor: progress; }
+
+.filtersToggle {
+  display: none; align-items: center; gap: 0.45rem; flex: none;
+  padding: 0 0.9rem; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--fg-muted);
+}
+.filtersToggle[aria-expanded='true'] { color: var(--fg); }
+.count {
+  display: inline-grid; place-items: center; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem;
+  border-radius: 999px; background: var(--fg); color: var(--bg); font-size: var(--text-2xs); font-weight: 600;
+}
+
+.hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--fg-muted); }
+
+/* Below ~1100px the filters can't share a row with the words: they fold
+   behind a toggle and open as a grid under the bar. */
+@media (max-width: 72rem), (max-height: 32rem) {
+  .bar { flex-wrap: wrap; }
+  .filtersToggle { display: inline-flex; }
+  .filters { display: none; order: 3; flex-basis: 100%; border-top: 1px solid var(--line); }
+  .filters[data-open] { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .field { padding: 0.55rem 0.85rem; }
+  .field:first-child { border-left: 0; }
+  .field input, .field input[name='from'], .field input[name='to'], .limit input { width: 100%; }
+}
+@media (max-width: 40rem) {
+  .bar { overflow: hidden; }
+  .words { flex-basis: 100%; }
+  .words input { font-size: var(--text-md); }
+  .filtersToggle { flex: 1; border-left: 0; border-top: 1px solid var(--line); height: 2.9rem; justify-content: center; }
+  .submit { flex: 1; margin: 0; border-radius: 0; height: 2.9rem; }
+  /* Dates need the full width to show a whole value; tags and the limit share a row. */
+  .filters[data-open] { grid-template-columns: 1fr 6.5rem; grid-template-areas: 'tag limit' 'from from' 'to to'; order: 2; border-top: 1px solid var(--line); }
+  .field:nth-child(1) { grid-area: tag; }
+  .field:nth-child(2) { grid-area: from; border-left: 0; border-top: 1px solid var(--line); }
+  .field:nth-child(3) { grid-area: to; border-left: 0; border-top: 1px solid var(--line); }
+  .field:nth-child(4) { grid-area: limit; }
+  /* 16px: anything smaller makes iOS zoom the page when the field is focused. */
+  .field input { font-size: var(--text-md); height: 1.6rem; }
+}
+@media (pointer: coarse) {
+  .submit, .filtersToggle { min-height: 2.75rem; }
+  .field { min-height: 3.25rem; }
+}

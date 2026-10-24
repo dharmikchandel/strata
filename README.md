@@ -251,7 +251,8 @@ Stated plainly, because they matter:
 
 ```
 cmd/strata         the server binary
-cmd/stratactl      client: ingest, search, and a minimal web page
+cmd/stratactl      client: ingest, search, and the web page (`stratactl ui`)
+web                the web page's source (React, TypeScript, Vite); built into cmd/stratactl/ui
 cmd/strata-bench   the benchmark harness
 cmd/strata-gen     the generated-traffic sender and verifier
 internal/segment   the segment file format (header, lines, index, bloom filter)
@@ -274,9 +275,12 @@ Makefile           shortcuts for running, testing and cleaning up
 ```sh
 make server                       # the S3 tests need the local object store;
 make test                         #   without it they are skipped, not failed
-make check                        # gofmt, go vet and the tests (race detector on)
+make web-install                  # once: the web page's dependencies (Node 22 or later)
+make check                        # gofmt, go vet, the web page's checks and the tests (race detector on)
 make test-e2e                     # builds the image and tests the real containers
 ```
+
+The built web page is committed, so `go build` and `stratactl ui` need no Node. After changing anything in `web/`, run `make web-build` and commit the result; `make check` fails if the committed build is out of date. `make web-dev` serves the page with live reload against a running `make ui`.
 
 The tests include crash simulations (a child process killed with `SIGKILL` in the middle of a manifest transaction), concurrency tests under the race detector, and a fuzz test of the segment decoder.
 

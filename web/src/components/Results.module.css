@@ -1,0 +1,34 @@
+.wrap {
+  margin-top: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--bg-panel); overflow: hidden; transition: opacity var(--dur) var(--ease-out);
+}
+.wrap[data-stale] { opacity: 0.45; }
+.table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.55; }
+.table th {
+  text-align: left; font-family: var(--font-sans); font-weight: 500; font-size: var(--text-xs); color: var(--fg-muted);
+  padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); background: var(--bg-raised);
+}
+.table td { padding: 0.45rem 0.9rem; vertical-align: top; border-bottom: 1px solid var(--line); }
+.table tbody tr:last-child td { border-bottom: 0; }
+@media (hover: hover) { .table tbody tr:hover { background: var(--bg-hover); } }
+.ts { white-space: nowrap; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.tsHead { width: 1%; }
+.msg { overflow-wrap: anywhere; color: var(--fg); }
+.tags { width: 1%; white-space: nowrap; }
+.tag {
+  display: inline-block; margin: 0 0.3rem 0.2rem 0; padding: 0 0.4rem; border-radius: var(--radius-sm);
+  background: var(--bg-raised); border: 1px solid var(--line); color: var(--fg-muted); font-size: var(--text-2xs); line-height: 1.6;
+}
+
+/* Phones: three columns can't share 358px, so each row becomes an entry:
+   the time and tags on a small meta line, then the message at full width. */
+@media (max-width: 40rem) {
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .table, .table tbody, .table tr, .table td { display: block; }
+  .table tr { padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--line); }
+  .table tbody tr:last-child { border-bottom: 0; }
+  .table td { padding: 0; border: 0; }
+  .ts { font-size: var(--text-2xs); }
+  .msg { margin-top: 0.3rem; font-size: var(--text-sm); }
+  .tags { width: auto; margin-top: 0.4rem; white-space: normal; }
+}

@@ -1,0 +1,40 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  accent-color: var(--fg);
+  scrollbar-color: var(--line-strong) var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 var(--text-base) / 1.5 var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: color-mix(in srgb, var(--fg) 24%, transparent); }
+
+h1, h2, h3, p { margin: 0; }
+
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+@media (hover: hover) { a:hover { text-decoration-color: currentColor; } }
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+input { caret-color: var(--fg); }
+input::placeholder { color: var(--fg-muted); opacity: 1; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Visually hidden but still read by assistive tech. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}

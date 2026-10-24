@@ -1,0 +1,7 @@
+.toggle {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: transparent; color: var(--fg-muted);
+  transition: color var(--dur-fast), background-color var(--dur-fast), border-color var(--dur-fast);
+}
+@media (hover: hover) { .toggle:hover { color: var(--fg); background: var(--bg-raised); border-color: var(--line-strong); } }
+@media (pointer: coarse) { .toggle { width: 44px; height: 44px; } }

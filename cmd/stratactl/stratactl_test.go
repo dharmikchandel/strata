@@ -159,28 +159,6 @@ func TestUIMapsServerErrorsToSafeHTTPErrors(t *testing.T) {
 	}
 }
 
-func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
-	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
-	for _, path := range []string{"/", "/app.js", "/style.css"} {
-		rec := get(t, h, path)
-		if rec.Code != 200 {
-			t.Errorf("%s: %d", path, rec.Code)
-		}
-		csp := rec.Header().Get("Content-Security-Policy")
-		if !strings.Contains(csp, "default-src 'none'") || strings.Contains(csp, "unsafe-inline") || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Errorf("%s: weak headers: %v", path, rec.Header())
-		}
-	}
-	// The page must never insert server text as HTML.
-	js, _ := os.ReadFile("ui/app.js")
-	if strings.Contains(string(js), "innerHTML") {
-		t.Error("app.js uses innerHTML; log lines are untrusted and must be inserted as text")
-	}
-	if rec := get(t, h, "/../../etc/passwd"); rec.Code == 200 && strings.Contains(rec.Body.String(), "root:") {
-		t.Fatal("path traversal")
-	}
-}
-
 func TestHelpers(t *testing.T) {
 	if got, err := parseTime("2005-06-03T15:00:00Z"); err != nil || got != time.Date(2005, 6, 3, 15, 0, 0, 0, time.UTC).UnixNano() {
 		t.Errorf("rfc3339: %d %v", got, err)
@@ -285,37 +263,60 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 	}
 }
 
-// Regression test for a bug that shipped: the legend's colour classes (.time,
-// .bloom, .scanned) were bare selectors, so the results table's timestamp cell
-// (also class "time") inherited a grey background and 3:1 text. The colours
-// must only apply to the legend swatches, and the table cells must use classes
-// that no bare rule styles.
-func TestLegendColoursDoNotLeakOntoTableCells(t *testing.T) {
-	css, err := os.ReadFile("ui/style.css")
-	if err != nil {
-		t.Fatal(err)
+func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
+	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
+	page := readFile(t, "ui/index.html")
+	// The page itself and every file the built index.html links to.
+	paths := []string{"/"}
+	for _, m := range regexp.MustCompile(`(?:src|href)="(/[^"]+)"`).FindAllStringSubmatch(page, -1) {
+		paths = append(paths, m[1])
 	}
-	js, err := os.ReadFile("ui/app.js")
-	if err != nil {
-		t.Fatal(err)
+	if len(paths) < 3 {
+		t.Fatalf("the built page links to %v; expected its script and stylesheet (run make web-build)", paths[1:])
 	}
-	bare := regexp.MustCompile(`(?m)(^|[},])\s*\.(time|bloom|scanned)\s*[{,]`)
-	if m := bare.Find(css); m != nil {
-		t.Fatalf("a bare %q rule would colour every element with that class, including table cells; scope it (.swatch.time)", strings.TrimSpace(string(m)))
+	for _, path := range paths {
+		rec := get(t, h, path)
+		if rec.Code != 200 {
+			t.Errorf("%s: %d", path, rec.Code)
+		}
+		csp := rec.Header().Get("Content-Security-Policy")
+		if !strings.Contains(csp, "default-src 'none'") || strings.Contains(csp, "unsafe-inline") || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+			t.Errorf("%s: weak headers: %v", path, rec.Header())
+		}
 	}
-	// The classes given to result cells in app.js...
-	cells := regexp.MustCompile(`\['(\w+)', h\.|\['(\w+)', h\.message|\['(\w+)', Object`).FindAllStringSubmatch(string(js), -1)
-	if len(cells) < 3 {
-		t.Fatalf("could not find the table cell classes in app.js (%v); update this test with the code", cells)
+	// The CSP allows no inline code, so the built page must not contain any.
+	if regexp.MustCompile(`<script(?:\s[^>]*)?>\s*[^<\s]|<style|\sstyle="`).MatchString(page) {
+		t.Error("the built index.html has an inline script or style, which the CSP blocks")
 	}
-	for _, m := range cells {
-		for _, name := range m[1:] {
-			if name == "" {
-				continue
-			}
-			// ...must not be styled by a bare class rule that the legend or bar also uses.
-			if name == "time" || name == "bloom" || name == "scanned" {
-				t.Errorf("table cells use class %q, which the legend/bar also use", name)
+	// The page must never insert server text as HTML.
+	for path, src := range webSources(t, ".ts", ".tsx") {
+		if strings.Contains(src, "dangerouslySetInnerHTML") || strings.Contains(src, "innerHTML") {
+			t.Errorf("%s inserts HTML; log lines are untrusted and must be rendered as text", path)
+		}
+	}
+	if rec := get(t, h, "/../../etc/passwd"); rec.Code == 200 && strings.Contains(rec.Body.String(), "root:") {
+		t.Fatal("path traversal")
+	}
+}
+
+// The legend colours once leaked onto table cells: a bare `.time` rule meant
+// for a swatch also matched the timestamp cells (class "time"), which got a
+// grey background and 3:1 text. Component styles are now CSS modules, whose
+// class names are made unique at build time; only the small global files may
+// define plain classes, and only the few listed here.
+func TestStylesAreScopedToTheirComponents(t *testing.T) {
+	globalOK := map[string]bool{"mono": true, "sr-only": true}
+	for path, css := range webSources(t, ".css") {
+		if strings.HasSuffix(path, ".module.css") {
+			continue
+		}
+		if !strings.Contains(path, "/styles/") {
+			t.Errorf("%s: component styles must be CSS modules (*.module.css)", path)
+			continue
+		}
+		for _, m := range regexp.MustCompile(`(?m)^[^{}@/*]*?\.([a-zA-Z][\w-]*)[^{}]*\{`).FindAllStringSubmatch(stripCSSComments(css), -1) {
+			if !globalOK[m[1]] {
+				t.Errorf("%s defines a global class .%s; move it into a component's CSS module", path, m[1])
 			}
 		}
 	}
@@ -324,65 +325,151 @@ func TestLegendColoursDoNotLeakOntoTableCells(t *testing.T) {
 // Phone adaptation guards. These check the things that went wrong on phones and
 // that no desktop-width test would notice.
 func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
-	html, _ := os.ReadFile("ui/index.html")
-	css, _ := os.ReadFile("ui/style.css")
-	js, _ := os.ReadFile("ui/app.js")
-	page := string(html)
+	page := readFile(t, "ui/index.html")
+	tsx := webSources(t, ".tsx")
+	css := webSources(t, ".css")
+	all := func(m map[string]string) string {
+		var b strings.Builder
+		for _, v := range m {
+			b.WriteString(v)
+		}
+		return b.String()
+	}
+	allTSX, allCSS := all(tsx), all(css)
+	file := func(name string) string {
+		for path, src := range tsx {
+			if strings.HasSuffix(path, "/"+name) {
+				return src
+			}
+		}
+		t.Fatalf("web source %s not found", name)
+		return ""
+	}
 
 	// A cursor in the search box opens the on-screen keyboard over the result.
-	if strings.Contains(page, "autofocus") {
-		t.Error("an autofocus attribute opens the keyboard on phones; focus only for fine pointers, from script")
+	if strings.Contains(page, "autofocus") || strings.Contains(allTSX, "autoFocus") {
+		t.Error("autofocus opens the keyboard on phones; focus only for fine pointers, from script")
 	}
-	if !strings.Contains(string(js), "(pointer: fine)") {
-		t.Error("app.js should focus the search box only on pointer devices")
+	if !strings.Contains(file("App.tsx"), "(pointer: fine)") {
+		t.Error("the page should focus the search box only on pointer devices")
 	}
 	// Notch / rounded-corner safe areas need viewport-fit=cover to take effect.
-	if !strings.Contains(page, "viewport-fit=cover") || !strings.Contains(string(css), "safe-area-inset") {
+	if !strings.Contains(page, "viewport-fit=cover") || !strings.Contains(allCSS, "safe-area-inset") {
 		t.Error("the page should extend under the notch and pad by the safe-area insets")
 	}
 	// Log search terms must not be auto-capitalised or autocorrected.
-	for _, want := range []string{`autocapitalize="off"`, `autocorrect="off"`, `spellcheck="false"`, `enterkeyhint="search"`} {
-		if !strings.Contains(page, want) {
+	form := file("SearchForm.tsx")
+	for _, want := range []string{`autoCapitalize: 'off'`, `autoCorrect: 'off'`, `spellCheck: false`, `enterKeyHint="search"`} {
+		if !strings.Contains(form, want) {
 			t.Errorf("the search input is missing %s", want)
 		}
 	}
 	// Rows become blocks on phones, which drops table semantics unless roles are explicit.
-	for _, role := range []string{`role="table"`, `role="row"`, `role="columnheader"`, `role="rowgroup"`} {
-		if !strings.Contains(page, role) {
-			t.Errorf("the table markup is missing %s", role)
+	for _, name := range []string{"Results.tsx", "ReadList.tsx"} {
+		src := file(name)
+		for _, role := range []string{`role="table"`, `role="rowgroup"`, `role="row"`, `role="columnheader"`, `role="cell"`} {
+			if !strings.Contains(src, role) {
+				t.Errorf("%s is missing %s", name, role)
+			}
 		}
-	}
-	if !strings.Contains(string(js), "setAttribute('role', 'cell')") {
-		t.Error("cells created by app.js need role=cell")
 	}
 	// The filter toggle must point at the group it opens.
-	if !strings.Contains(page, `aria-controls="filters"`) || !strings.Contains(page, `id="filters"`) || !strings.Contains(page, `aria-expanded="false"`) {
+	if !strings.Contains(form, `aria-controls="filters"`) || !strings.Contains(form, `id="filters"`) || !strings.Contains(form, `aria-expanded=`) {
 		t.Error("the Filters toggle needs aria-controls and aria-expanded")
 	}
-	// Core information must never be hidden on a phone: the tags column was, once.
-	if regexp.MustCompile(`td\.tags[^{]*\{[^}]*display:\s*none`).Match(css) {
-		t.Error("a rule hides the tags on small screens; they are core information")
-	}
-	// A bare `th:nth-child(n)` rule also hid a column of the read-list table.
-	if regexp.MustCompile(`(?m)(^|[{};])\s*th:nth-child`).Match(css) {
-		t.Error("th:nth-child selectors must be scoped to one table")
-	}
-	// The touch sizing must come AFTER the base rules it overrides: it once sat
-	// before `.example {`, lost on order, and left the rows 42px tall on touch.
-	coarse := strings.LastIndex(string(css), "@media (pointer: coarse)")
-	base := strings.LastIndex(string(css), "\n.example {")
-	if coarse < 0 || base < 0 || coarse < base {
-		t.Error("the @media (pointer: coarse) block must come after the .example base rule so it wins")
-	}
-	// Hover styles belong inside a hover media query so a tap leaves nothing "stuck".
-	for _, bare := range []string{".example:hover", "#submit:hover"} {
-		i := strings.Index(string(css), bare)
-		if i < 0 {
-			continue
+	for path, src := range css {
+		src = stripCSSComments(src)
+		// Core information must never be hidden on a phone: the tags column was, once.
+		if regexp.MustCompile(`\.tags?\b[^{]*\{[^}]*display:\s*none`).MatchString(src) {
+			t.Errorf("%s: a rule hides the tags; they are core information", path)
 		}
-		before := string(css)[:i]
-		if j := strings.LastIndex(before, "@media"); j < 0 || !strings.Contains(before[j:], "(hover: hover)") {
-			t.Errorf("%s is not inside @media (hover: hover)", bare)
+		// A bare `th:nth-child(n)` rule once hid a column of another table.
+		if regexp.MustCompile(`(?m)(^|[{};])\s*th:nth-child`).MatchString(src) {
+			t.Errorf("%s: th:nth-child selectors must be scoped to one table", path)
+		}
+		blocks := cssBlocks(src)
+		for i, b := range blocks {
+			// Hover styles belong inside a hover media query, so a tap leaves nothing "stuck".
+			if strings.Contains(b.selector, ":hover") && !strings.Contains(b.within, "(hover: hover)") {
+				t.Errorf("%s: %q is not inside @media (hover: hover)", path, b.selector)
+			}
+			// Touch sizing must come after the base rules it overrides: it once
+			// sat before them, lost on order, and left rows 42px tall on touch.
+			if strings.Contains(b.within, "(pointer: coarse)") {
+				for _, later := range blocks[i+1:] {
+					if !strings.Contains(later.within, "(pointer: coarse)") {
+						t.Errorf("%s: %q comes after the (pointer: coarse) block; touch sizes must be last so they win", path, later.selector)
+						break
+					}
+				}
+			}
 		}
 	}
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// webSources returns the page's source files (web/src) with the given extensions.
+func webSources(t *testing.T, exts ...string) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	err := filepath.WalkDir("../../web/src", func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		for _, ext := range exts {
+			if strings.HasSuffix(path, ext) && !strings.HasSuffix(path, ".test.ts") {
+				out[filepath.ToSlash(path)] = readFile(t, path)
+			}
+		}
+		return nil
+	})
+	if err != nil || len(out) == 0 {
+		t.Fatalf("reading web/src: %v (%d files)", err, len(out))
+	}
+	return out
+}
+
+func stripCSSComments(css string) string {
+	return regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(css, "")
+}
+
+// cssRule is one style rule: its selector and the at-rules it sits inside.
+type cssRule struct{ selector, within string }
+
+// cssBlocks lists the style rules of a stylesheet in order. Enough of a parser
+// for these guards: it tracks braces and treats every block that holds
+// declarations as a rule.
+func cssBlocks(css string) []cssRule {
+	var rules []cssRule
+	var stack []string
+	start := 0
+	for i, c := range css {
+		switch c {
+		case '{':
+			stack = append(stack, strings.TrimSpace(css[start:i]))
+			start = i + 1
+		case '}':
+			if len(stack) > 0 {
+				sel := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				if !strings.HasPrefix(sel, "@") {
+					rules = append(rules, cssRule{selector: sel, within: strings.Join(stack, " ")})
+				}
+			}
+			start = i + 1
+		case ';':
+			if len(stack) == 0 || strings.HasPrefix(stack[len(stack)-1], "@") {
+				start = i + 1 // a statement at top level or directly inside an at-rule
+			}
+		}
+	}
+	return rules
 }

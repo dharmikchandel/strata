@@ -1,7 +1,7 @@
 [
   {
     "title": "A rare word",
-    "note": "\"lapack\" turns up in about one line in 7,000, so bloom filters rule out nearly every segment without opening it.",
+    "note": "\"lapack\" is in about one line in 7,000. Segments whose bloom filter rules it out are skipped unopened: fewer as segments grow.",
     "text": "lapack",
     "limit": 20
   },

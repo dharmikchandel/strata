@@ -1,0 +1,107 @@
+/* Design tokens. Dark is the primary theme; light follows the system setting
+   unless the visitor picks one (data-theme on <html>).
+
+   Colour carries meaning and nothing else:
+     --read   orange: data was fetched from storage (also the brand accent)
+     --bloom  steel blue: ruled out by a bloom filter, not opened
+     --time   graphite: ruled out by its time range, not opened
+   Everything else is neutral. */
+:root {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-md: 1rem;       /* 16px */
+  --text-lg: 1.25rem;    /* 20px */
+  --text-xl: 1.5rem;     /* 24px */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  --content-max: 76rem;
+  --gutter: max(1rem, env(safe-area-inset-left));
+  --gutter-r: max(1rem, env(safe-area-inset-right));
+
+  /* dark */
+  --bg: #0a0b0d;
+  --bg-panel: #111216;
+  --bg-raised: #191a1f;
+  --bg-hover: #1e2026;
+  --line: #24262c;
+  --line-strong: #33363e;
+  --fg: #ececef;
+  --fg-muted: #9a9ea8;
+  --fg-faint: #6d717b; /* non-text marks only: it fails contrast as text */
+  --read: #f08a3c;
+  --read-text: #f6a466;
+  --bloom: #5b80b2;
+  --time: #62666f; /* 3.2:1 on the panel: a ruled-out bar must still be seen */
+  --error: #ff8473;
+  --focus: #c8ccd4;
+  --invert-bg: #ececef;
+  --invert-fg: #0a0b0d;
+  --invert-hover: #ffffff;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #f8f8f9;
+    --bg-panel: #ffffff;
+    --bg-raised: #f1f1f3;
+    --bg-hover: #ebebee;
+    --line: #e3e3e7;
+    --line-strong: #d1d1d7;
+    --fg: #111114;
+    --fg-muted: #5b5f69;
+    --fg-faint: #a1a4ad;
+    --read: #dd6c24;
+    --read-text: #b4520f;
+    --bloom: #5479ad;
+    --time: #8e919a;
+    --error: #c0321d;
+    --focus: #3a3d45;
+    --invert-bg: #111114;
+    --invert-fg: #f8f8f9;
+    --invert-hover: #2a2b31;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --bg: #f8f8f9;
+  --bg-panel: #ffffff;
+  --bg-raised: #f1f1f3;
+  --bg-hover: #ebebee;
+  --line: #e3e3e7;
+  --line-strong: #d1d1d7;
+  --fg: #111114;
+  --fg-muted: #5b5f69;
+  --fg-faint: #a1a4ad;
+  --read: #dd6c24;
+  --read-text: #b4520f;
+  --bloom: #5479ad;
+  --time: #8e919a;
+  --error: #c0321d;
+  --focus: #3a3d45;
+  --invert-bg: #111114;
+  --invert-fg: #f8f8f9;
+  --invert-hover: #2a2b31;
+  color-scheme: light;
+}

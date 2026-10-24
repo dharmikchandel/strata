@@ -1,0 +1,17 @@
+.table { width: calc(100% - 2 * var(--space-5)); margin: 0 var(--space-5) var(--space-4); border-collapse: collapse; font-size: var(--text-xs); }
+.table th { text-align: left; font-weight: 500; color: var(--fg-muted); padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--line); }
+.table td { padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table tr:last-child td { border-bottom: 0; }
+.id { color: var(--fg-muted); }
+.more td { color: var(--fg-muted); }
+
+/* Phones: each segment becomes a small stacked entry with labelled values. */
+@media (max-width: 40rem) {
+  .table { width: calc(100% - 2 * var(--space-4)); margin: 0 var(--space-4) var(--space-4); }
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .table, .table tbody, .table tr { display: block; }
+  .table tr { padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+  .table td { display: inline; padding: 0 0.75rem 0 0; border: 0; white-space: normal; }
+  .table td[data-label]::before { content: attr(data-label) ' '; color: var(--fg-muted); font-family: var(--font-sans); }
+  .table td.covers { display: block; margin: 0.15rem 0; }
+}

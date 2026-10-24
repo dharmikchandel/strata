@@ -1,0 +1,32 @@
+/* The strip and its dates are only as wide as the bars: a handful of segments
+   must not leave the newest date stranded across the panel. */
+.box { max-width: max(14rem, calc(var(--n, 1000) * 2.6rem)); }
+.box[data-blocks] { max-width: none; }
+
+.strip {
+  --h-skip: 0.5rem; --h-read: 4rem; --rise-from: 0.16;
+  display: flex; align-items: flex-end; gap: 2px; height: var(--h-read);
+}
+.strip.dense { gap: 0; }
+.strip.flat { height: var(--h-skip); }
+.strip > i { display: block; flex: 1 1 0; min-width: 1px; max-width: 2.4rem; height: var(--h-skip); border-radius: 2px 2px 0 0; }
+.time { background: var(--time); }
+.bloom { background: var(--bloom); }
+.scanned { background: var(--read); }
+.strip > i.scanned { height: var(--h-read); }
+
+/* The read bars rise into place once, left to right. Transform only. */
+.rise > i.scanned { transform: scaleY(var(--rise-from)); transform-origin: bottom; }
+.rise.go > i.scanned { transform: none; transition: transform 0.55s var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .rise.go > i.scanned { transition: none; } }
+
+.blocks > i { max-width: none; flex-grow: 0; }
+.blocks > i.scanned { min-width: 3px; } /* a read is always visible */
+
+.axis {
+  display: flex; justify-content: space-between; gap: var(--space-4);
+  margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(--line);
+  font-size: var(--text-2xs); color: var(--fg-muted);
+}
+.note { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--fg-muted); }
+@media (max-width: 40rem) { .strip { --h-read: 3rem; --rise-from: 0.2; } }

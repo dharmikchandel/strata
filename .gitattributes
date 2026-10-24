@@ -1,0 +1,2 @@
+# The built web page (source in web/) is committed so `go build` needs no Node.
+cmd/stratactl/ui/** linguist-generated=true

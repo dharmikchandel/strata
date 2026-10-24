@@ -1,0 +1,17 @@
+.examples { margin-top: var(--space-4); }
+.row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.title { font-size: var(--text-xs); font-weight: 500; color: var(--fg-muted); }
+.list { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.pill {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  height: 1.875rem; padding: 0 0.75rem; border: 1px solid var(--line); border-radius: 999px;
+  background: transparent; color: var(--fg-muted); font-size: var(--text-sm);
+  transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast);
+}
+@media (hover: hover) { .pill:hover { color: var(--fg); border-color: var(--line-strong); background: var(--bg-raised); } }
+.pill[aria-current='true'] { color: var(--fg); border-color: var(--line-strong); background: var(--bg-raised); }
+.pill[aria-current='true']::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--fg);
+}
+.note { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--fg-muted); max-width: 75ch; }
+@media (pointer: coarse) { .pill { height: 2.75rem; padding: 0 1rem; } }
