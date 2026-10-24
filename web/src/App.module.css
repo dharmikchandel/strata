@@ -1,37 +1,15 @@
-.main {
-  max-width: var(--content-max); margin: 0 auto;
-  padding: var(--space-7) var(--gutter-r) 0 var(--gutter);
-}
-/* The page title: what is being searched, set big and flush-left, with the
-   live facts about it underneath. */
-.title { margin-bottom: var(--space-5); }
-.title h1 { font-size: var(--text-3xl); }
-.facts {
-  display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: var(--space-3);
-  font-size: var(--text-xs); color: var(--fg-muted);
-}
-.facts span + span { position: relative; }
-.facts span + span::before {
-  content: ''; position: absolute; left: -0.65rem; top: 50%;
-  width: 3px; height: 3px; border-radius: 50%; background: var(--fg-faint); transform: translate(-50%, -50%);
-}
-.empty {
-  margin-bottom: var(--space-5); padding: var(--space-4); border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-lg); color: var(--fg-muted);
-}
-.empty code { color: var(--fg); }
+/* The app spans the window, like a log tool: lines are wide. */
+.main { padding: 0 var(--gutter-r) 0 var(--gutter); }
 .error {
-  display: flex; align-items: flex-start; gap: 0.5rem; margin-top: var(--space-3);
+  display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin-top: var(--space-3);
   color: var(--error); font-size: var(--text-sm); font-weight: 500;
 }
-.error svg { flex: none; margin-top: 0.15em; }
-.anchor { scroll-margin-top: 64px; }
-.status { margin-top: var(--space-6); min-height: 1.5em; font-size: var(--text-sm); font-weight: 500; color: var(--fg-muted); }
-.status[data-help] { color: var(--fg); }
-@media (max-width: 40rem) {
-  /* The range would wrap with a separator dot at the start of its line. */
-  .range { flex-basis: 100%; }
-  .facts .range::before { display: none; }
-  .main { padding-top: var(--space-5); }
-  .title h1 { font-size: 2rem; }
+.error svg { flex: none; margin-top: 0.2em; }
+.error p { flex: 1 1 20rem; max-width: 80ch; }
+.retry {
+  height: 2rem; padding: 0 0.85rem; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: transparent; color: var(--fg); font-size: var(--text-sm); font-weight: 600;
 }
+@media (hover: hover) { .retry:hover { background: var(--bg-raised); } }
+.anchor { scroll-margin-top: 72px; }
+@media (pointer: coarse) { .retry { height: 2.75rem; } }

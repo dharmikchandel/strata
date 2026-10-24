@@ -1,34 +1,42 @@
+/* overflow: clip, not hidden: hidden would make this a scroll container and
+   stop the viewer's header row from sticking under the top bar. */
+.panel {
+  margin-top: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--bg-panel); overflow: clip; transition: opacity var(--dur) var(--ease-out);
+}
+.panel[data-stale] { opacity: 0.45; }
+
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); padding: var(--space-4); border-bottom: 1px solid var(--line); }
+.count { font-size: var(--text-md); font-weight: 600; }
+.count .mono { font-weight: 600; }
+.shown { font-weight: 400; color: var(--fg-muted); }
+
+.controls { display: flex; align-items: center; gap: var(--space-4); }
+/* A switch drawn as a small track, neutral like every control. */
 .wrap {
-  margin-top: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-lg);
-  background: var(--bg-panel); overflow: hidden; transition: opacity var(--dur) var(--ease-out);
+  display: inline-flex; align-items: center; gap: 0.5rem; height: 2rem; padding: 0; border: 0; background: transparent;
+  color: var(--fg-muted); font-size: var(--text-sm); font-weight: 500;
 }
-.wrap[data-stale] { opacity: 0.45; }
-.table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; }
-.table th {
-  text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: var(--text-xs); color: var(--fg-muted);
-  padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); background: var(--bg-raised);
+.track {
+  position: relative; width: 1.75rem; height: 1rem; border-radius: 999px; border: 1px solid var(--line-strong);
+  transition: background-color var(--dur-fast), border-color var(--dur-fast);
 }
-.table td { padding: 0.45rem 0.9rem; vertical-align: top; border-bottom: 1px solid var(--line); }
-.table tbody tr:last-child td { border-bottom: 0; }
-@media (hover: hover) { .table tbody tr:hover { background: var(--bg-hover); } }
-.ts { white-space: nowrap; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
-.tsHead { width: 1%; }
-.msg { overflow-wrap: anywhere; color: var(--fg); }
-.tags { width: 1%; white-space: nowrap; }
-.tag {
-  display: inline-block; margin: 0 0.3rem 0.2rem 0; padding: 0 0.4rem; border-radius: var(--radius-sm);
-  background: var(--bg-raised); border: 1px solid var(--line); color: var(--fg-muted); font-size: var(--text-2xs); line-height: 1.6;
+.track::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--fg-muted); transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast);
+}
+.wrap[aria-pressed='true'] { color: var(--fg); }
+.wrap[aria-pressed='true'] .track { background: var(--invert-bg); border-color: var(--invert-bg); }
+.wrap[aria-pressed='true'] .track::after { transform: translateX(0.75rem); background: var(--invert-fg); }
+.limit { display: inline-flex; align-items: center; gap: 0.5rem; font-size: var(--text-sm); color: var(--fg-muted); }
+.limit select {
+  height: 2rem; padding: 0 0.5rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg); color: var(--fg); font: inherit; font-weight: 500; font-variant-numeric: tabular-nums;
 }
 
-/* Phones: three columns can't share 358px, so each row becomes an entry:
-   the time and tags on a small meta line, then the message at full width. */
-@media (max-width: 40rem) {
-  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .table, .table tbody, .table tr, .table td { display: block; }
-  .table tr { padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--line); }
-  .table tbody tr:last-child { border-bottom: 0; }
-  .table td { padding: 0; border: 0; }
-  .ts { font-size: var(--text-2xs); }
-  .msg { margin-top: 0.3rem; font-size: var(--text-sm); }
-  .tags { width: auto; margin-top: 0.4rem; white-space: normal; }
-}
+.none { padding: var(--space-5) var(--space-4); font-size: var(--text-sm); color: var(--fg-muted); max-width: 80ch; }
+.none b { color: var(--fg); font-weight: 600; }
+
+@media (hover: hover) { .limit select:hover { border-color: var(--line-strong); } .wrap:hover { color: var(--fg); } }
+@media (max-width: 40rem) { .head { padding: var(--space-3); } }
+@media (pointer: coarse) { .limit select { height: 2.75rem; font-size: var(--text-md); } .wrap { min-height: 2.75rem; } }

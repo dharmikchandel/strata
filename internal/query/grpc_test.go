@@ -238,6 +238,14 @@ func TestSearchRPCListsWhatHappenedToEverySegment(t *testing.T) {
 	if int(hits) != len(resp.Hits) {
 		t.Fatalf("hits attributed %d, returned %d", hits, len(resp.Hits))
 	}
+	// Two segments of 100 lines were read, and every line has "common".
+	var counted uint64
+	for _, c := range resp.GetHistogram().GetCounts() {
+		counted += c
+	}
+	if counted != 200 || resp.GetHistogram().GetBucketNanos() <= 0 {
+		t.Fatalf("histogram %+v counts %d, want 200", resp.GetHistogram(), counted)
+	}
 }
 
 // With more segments than the server is willing to list, the list is left out

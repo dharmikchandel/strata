@@ -69,6 +69,22 @@ message SearchResponse {
   // always complete.
   repeated SegmentOutcome segments = 4;
   bool segments_truncated = 5;
+  // Matching lines over time, counted in every segment that was read. A
+  // skipped segment holds no match by construction (its time range misses the
+  // query's, or a query word is definitely not in it), so these counts cover
+  // every matching line, not only the ones returned in hits. Absent when no
+  // segment overlaps the time range.
+  Histogram histogram = 6;
+}
+
+// Counts per time bucket. Buckets are of equal width, aligned to multiples of
+// that width since the Unix epoch, and together cover the part of the query's
+// time range that holds data.
+message Histogram {
+  // Start of the first bucket, in nanoseconds since the Unix epoch.
+  int64 start_unix_nano = 1;
+  int64 bucket_nanos = 2;
+  repeated uint64 counts = 3;
 }
 
 // What one search did with one segment.

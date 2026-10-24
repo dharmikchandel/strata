@@ -361,6 +361,10 @@ func TestAgreesWithBruteForce(t *testing.T) {
 		if len(got.Hits) != len(want) {
 			t.Fatalf("query %+v: got %d hits, want %d", q, len(got.Hits), len(want))
 		}
+		// The histogram counts every match, so it must agree with brute force too.
+		if total := got.Histogram.Total(); total != int64(len(want)) {
+			t.Fatalf("query %+v: histogram counts %d matches, want %d", q, total, len(want))
+		}
 		// Both must be in timestamp order. Lines with the same timestamp may
 		// legitimately come in any order, so compare them as sets.
 		for k := 1; k < len(got.Hits); k++ {

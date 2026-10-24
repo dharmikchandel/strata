@@ -39,6 +39,17 @@ export interface SearchResult {
   // were too many to list.
   segments: SegmentOutcome[];
   segments_truncated: boolean;
+  // Every matching line by time, not only the returned ones; null when no
+  // segment overlaps the time range.
+  histogram: Histogram | null;
+}
+
+// Equal buckets from start_ms, each bucket_ms wide. Counted in the segments
+// that were read; a skipped segment holds no match, so this is every match.
+export interface Histogram {
+  start_ms: number;
+  bucket_ms: number;
+  counts: number[];
 }
 
 export interface Corpus {
@@ -70,10 +81,28 @@ export interface Overview {
   about_url?: string;
 }
 
+// A search that didn't produce a result. status is the HTTP status, or 0 when
+// no answer came back at all; message is the server's (safe) error text.
+export class SearchError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'SearchError';
+  }
+}
+
 export async function search(params: URLSearchParams, signal: AbortSignal): Promise<SearchResult> {
-  const res = await fetch('/api/search?' + params.toString(), { signal });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error || 'search failed');
+  let res: Response;
+  try {
+    res = await fetch('/api/search?' + params.toString(), { signal });
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') throw err;
+    throw new SearchError(0, 'unreachable');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new SearchError(res.status, typeof body.error === 'string' ? body.error : '');
   return body as SearchResult;
 }
 

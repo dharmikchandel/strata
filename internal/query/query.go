@@ -118,6 +118,9 @@ type Result struct {
 	Metrics   Metrics
 	// Segments lists what happened to every active segment, oldest first.
 	Segments []SegmentOutcome
+	// Histogram counts every matching line by time, not only the returned
+	// ones. Nil when no segment overlaps the time range.
+	Histogram *Histogram
 }
 
 // Engine runs searches over a manifest and the segments it describes.
@@ -210,8 +213,11 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 		outcomes[i] = o
 	}
 
-	// Filter 3: fetch the survivors in parallel and search each one.
+	// Filter 3: fetch the survivors in parallel and search each one. Each
+	// segment counts into its own buckets, so the goroutines share nothing.
+	hist := newHistogram(plan, from, to)
 	perSegment := make([][]Hit, len(candidates))
+	perCounts := make([][]int64, len(candidates))
 	bytesRead := make([]int64, len(candidates))
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(e.concurrency)
@@ -221,8 +227,8 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 			// notice that more lines matched than were asked for. Cutting a
 			// segment at exactly limit would hide that (Truncated would stay
 			// false when one segment alone had more matches than the limit).
-			hits, n, err := e.scan(gctx, s, terms, from, to, limit+1)
-			perSegment[i], bytesRead[i] = hits, n
+			hits, counts, n, err := e.scan(gctx, s, terms, from, to, limit+1, hist)
+			perSegment[i], perCounts[i], bytesRead[i] = hits, counts, n
 			return err
 		})
 	}
@@ -233,6 +239,11 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	for k, n := range bytesRead {
 		m.BytesRead += n
 		outcomes[candidateAt[k]].BytesRead = n
+	}
+	for _, counts := range perCounts {
+		for b, c := range counts {
+			hist.Counts[b] += c
+		}
 	}
 
 	// Merge. Each segment's hits are already in timestamp order, and a stable
@@ -255,23 +266,24 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	for i := range outcomes {
 		outcomes[i].Hits = fromSegment[outcomes[i].ID]
 	}
-	return &Result{Hits: hits, Truncated: truncated, Metrics: m, Segments: outcomes}, nil
+	return &Result{Hits: hits, Truncated: truncated, Metrics: m, Segments: outcomes, Histogram: hist}, nil
 }
 
 // scan fetches one segment and returns its matches (at most limit, earliest
-// first; the caller passes the query limit plus one, see search) and the number of bytes fetched.
-func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, from, to int64, limit int) ([]Hit, int64, error) {
+// first; the caller passes the query limit plus one, see search), the count of
+// ALL its matches per bucket of hist, and the number of bytes fetched.
+func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, from, to int64, limit int, hist *Histogram) ([]Hit, []int64, int64, error) {
 	r, err := e.store.Get(ctx, s.Key)
 	if errors.Is(err, storage.ErrNotFound) {
-		return nil, 0, fmt.Errorf("%w: %s (%s)", ErrSegmentMissing, s.ID, s.Key)
+		return nil, nil, 0, fmt.Errorf("%w: %s (%s)", ErrSegmentMissing, s.ID, s.Key)
 	}
 	if err != nil {
-		return nil, 0, fmt.Errorf("query: fetch segment %s: %w", s.ID, err)
+		return nil, nil, 0, fmt.Errorf("query: fetch segment %s: %w", s.ID, err)
 	}
 	data, err := io.ReadAll(r)
 	r.Close()
 	if err != nil {
-		return nil, 0, fmt.Errorf("query: read segment %s: %w", s.ID, err)
+		return nil, nil, 0, fmt.Errorf("query: read segment %s: %w", s.ID, err)
 	}
 	n := int64(len(data))
 
@@ -279,13 +291,28 @@ func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, f
 	if err != nil {
 		// A damaged segment is an error, not an empty result: skipping it
 		// silently would return incomplete answers that look complete.
-		return nil, n, fmt.Errorf("query: segment %s (%s): %w", s.ID, s.Key, err)
+		return nil, nil, n, fmt.Errorf("query: segment %s (%s): %w", s.ID, s.Key, err)
 	}
 	lo, hi, err := seg.IDRange(from, to)
 	if err != nil {
-		return nil, n, fmt.Errorf("query: segment %s: %w", s.ID, err)
+		return nil, nil, n, fmt.Errorf("query: segment %s: %w", s.ID, err)
 	}
 	ids := matchingIDs(seg, terms, lo, hi)
+
+	// Count before cutting to the limit. Timestamp reads 8 bytes of a line
+	// already in memory, so counting costs CPU, not storage reads.
+	var counts []int64
+	if hist != nil && len(ids) > 0 {
+		counts = make([]int64, len(hist.Counts))
+		for _, id := range ids {
+			ts, err := seg.Timestamp(id)
+			if err != nil {
+				return nil, nil, n, fmt.Errorf("query: segment %s: %w", s.ID, err)
+			}
+			counts[hist.bucket(ts)]++
+		}
+	}
+
 	if len(ids) > limit {
 		ids = ids[:limit]
 	}
@@ -293,11 +320,11 @@ func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, f
 	for _, id := range ids {
 		entry, err := seg.Entry(id)
 		if err != nil {
-			return nil, n, fmt.Errorf("query: segment %s: %w", s.ID, err)
+			return nil, nil, n, fmt.Errorf("query: segment %s: %w", s.ID, err)
 		}
 		hits = append(hits, Hit{SegmentID: s.ID, Entry: entry})
 	}
-	return hits, n, nil
+	return hits, counts, n, nil
 }
 
 // matchingIDs returns the ascending line ids in [lo, hi) that contain every

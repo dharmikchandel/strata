@@ -1,49 +1,62 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchOverview, search, type Overview, type SearchResult } from './lib/api';
-import { emptyForm, formFromExample, toParams, filterCount, validate, type Field, type FormState } from './lib/query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchOverview, search, SearchError, type Overview, type SearchResult } from './lib/api';
+import { explain, type Explained } from './lib/errors';
+import { emptyQuery, parse, parseTime, queryFromExample, rangeBounds, toApiParams, validate, type Query, type Range } from './lib/query';
+import { terms as termsOf } from './lib/tokenize';
 import { TopBar } from './components/TopBar';
-import { SearchForm } from './components/SearchForm';
+import { ContextRow } from './components/ContextRow';
+import { QueryBar } from './components/QueryBar';
 import { Examples } from './components/Examples';
 import { Readout } from './components/Readout';
 import { Results } from './components/Results';
+import { FirstRun, Unreachable } from './components/EmptyStates';
 import { Footer } from './components/Footer';
 import { AlertIcon } from './components/icons';
-import { formatBytes, n, plural } from './lib/format';
 import s from './App.module.css';
 
 export function App() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [query, setQuery] = useState<Query>(emptyQuery); // what the controls show
+  const [shown, setShown] = useState<Query | null>(null); // what the result on screen searched for
   const [active, setActive] = useState<number | null>(null); // example whose search is shown
   const [result, setResult] = useState<SearchResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [invalid, setInvalid] = useState<Field | null>(null);
+  const [seq, setSeq] = useState(0); // counts results, so each new one starts with its rows closed
+  const [error, setError] = useState<Explained | null>(null);
+  const [invalid, setInvalid] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const inFlight = useRef<AbortController | null>(null);
-  const wordsRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
   const revealNext = useRef(false);
+  const lastRun = useRef<Query | null>(null);
+  const overviewRef = useRef<Overview | null>(null);
+  overviewRef.current = overview;
+  const queryRef = useRef(query);
+  queryRef.current = query;
 
   // A newer search replaces an older one still in flight, so a slow answer can
   // never overwrite a fresh one.
-  const runSearch = useCallback(async (f: FormState, reveal: boolean) => {
+  const runSearch = useCallback(async (q: Query, reveal: boolean) => {
     inFlight.current?.abort();
     const mine = new AbortController();
     inFlight.current = mine;
+    lastRun.current = q;
     setError(null);
-    setInvalid(null);
+    setInvalid(false);
     setBusy(true);
     try {
-      const r = await search(toParams(f), mine.signal);
+      const r = await search(toApiParams(q, overviewRef.current?.corpus ?? null), mine.signal);
       revealNext.current = reveal;
       setResult(r);
+      setShown(q);
+      setSeq((n) => n + 1);
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
-      setResult(null);
-      setError((err as Error).message);
+      // The error sits by the query box; the last good result stays, dimmed,
+      // so an error never leaves a hole where the page was.
+      setError(explain(err instanceof SearchError ? err : new SearchError(0, '')));
     } finally {
       if (inFlight.current === mine) {
         inFlight.current = null;
@@ -52,16 +65,30 @@ export function App() {
     }
   }, []);
 
+  // Checks, then runs. Used by every control, so each one validates the same way.
+  const submit = useCallback(
+    (q: Query, reveal = true) => {
+      setQuery(q);
+      const problem = validate(q, overviewRef.current?.corpus ?? null);
+      if (problem) {
+        setError({ message: problem.message, retry: false });
+        setInvalid(problem.field === 'q');
+        return;
+      }
+      setActive(null); // a hand-made search is no longer "the example"
+      runSearch(q, reveal);
+    },
+    [runSearch],
+  );
+
   const runExample = useCallback(
     (i: number, ov: Overview | null, reveal: boolean) => {
       const ex = ov?.examples?.[i];
       if (!ex) return;
-      const f = formFromExample(ex);
-      setForm(f);
+      const q = queryFromExample(ex);
+      setQuery(q);
       setActive(i);
-      // Show the filters an example uses, so what ran is visible; fold them otherwise.
-      setFiltersOpen(filterCount(f) > 0);
-      runSearch(f, reveal);
+      runSearch(q, reveal);
     },
     [runSearch],
   );
@@ -76,20 +103,38 @@ export function App() {
     });
   }, [runExample]);
 
-  // While data keeps arriving the counts at the top keep up.
+  // While data keeps arriving the counts at the top keep up. When the first
+  // lines arrive on an empty store, the page runs its first search by itself.
   useEffect(() => {
     const id = setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       const ov = await fetchOverview();
-      if (ov) setOverview((prev) => (prev ? { ...prev, corpus: ov.corpus } : ov));
+      if (!ov) return; // a missed refresh keeps what is on screen
+      const wasEmpty = !overviewRef.current?.corpus;
+      setOverview((prev) => (prev ? { ...prev, corpus: ov.corpus } : ov));
+      if (wasEmpty && ov.corpus && !lastRun.current) runExample(0, ov, false);
     }, 10_000);
     return () => clearInterval(id);
-  }, []);
+  }, [runExample]);
 
   // A cursor in the search box is a convenience with a keyboard and a hazard on
   // a phone, where focusing it opens the on-screen keyboard over the page.
   useEffect(() => {
-    if (window.matchMedia('(pointer: fine)').matches) wordsRef.current?.focus({ preventScroll: true });
+    if (window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  // "/" jumps to the search box from anywhere, unless the visitor is typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement;
+      if (t.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   // After a search the visitor asked for, bring the result into view if it is
@@ -103,85 +148,93 @@ export function App() {
     el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
   }, [result]);
 
+  // A tag clicked in a line goes into the box, or comes out if it was there,
+  // and the search runs again.
+  const onTag = useCallback(
+    (k: string, v: string) => {
+      const q = queryRef.current;
+      const term = `${k}=${v}`;
+      const pieces = q.q.split(/\s+/).filter(Boolean);
+      const next = pieces.includes(term) ? pieces.filter((p) => p !== term) : [...pieces, term];
+      submit({ ...q, q: next.join(' ') }, false);
+    },
+    [submit],
+  );
+
+  // What the result on screen searched for: marked in its lines and tags.
+  const marks = useMemo(() => {
+    const p = parse(shown?.q ?? '');
+    return { terms: new Set(termsOf(p.words)), tags: new Set(p.tags.map(([k, v]) => `${k}=${v}`)) };
+  }, [shown]);
+
   const corpus = overview?.corpus ?? null;
+  // Where the result's matches can be: its range, cut to the stored data.
+  const extent = useMemo((): [number | null, number | null] => {
+    const [from, to] = shown ? rangeBounds(shown.range, corpus) : [null, null];
+    const first = corpus ? parseTime(corpus.min_input) : null;
+    const last = corpus ? parseTime(corpus.max_input) : null;
+    const clip = (a: number | null, b: number | null, pick: (x: number, y: number) => number) => (a === null ? b : b === null ? a : pick(a, b));
+    return [clip(from, first, Math.max), clip(to, last, Math.min)];
+  }, [shown, corpus]);
   const examples = overview?.examples ?? [];
-  const hits = result?.hits ?? [];
-  const m = result?.metrics;
+  const firstSearch = busy && !result;
 
   return (
     <>
-      <TopBar page="search" sourceUrl={overview?.about_url} />
+      <TopBar page="search" sourceUrl={overview?.about_url} wide />
       <main className={s.main}>
-        <div className={s.title}>
-          <h1 className="display">{corpus?.name || 'Stored logs'}</h1>
-          {corpus && (
-            <p className={`${s.facts} mono`}>
-              <span>{n(corpus.entries)} lines</span>
-              <span>{plural(corpus.segments, 'segment')}</span>
-              <span>{formatBytes(corpus.stored_bytes)}</span>
-              <span className={s.range}>
-                {corpus.first} → {corpus.last} UTC
-              </span>
-            </p>
-          )}
-        </div>
+        <ContextRow name={corpus?.name || 'Stored logs'} corpus={corpus} />
 
-        {loaded && !corpus && (
-          <p className={s.empty}>
-            Nothing is stored yet. Send some logs with <code className="mono">stratactl ingest</code>, then search them here.
-          </p>
-        )}
-
-        <SearchForm
-          ref={wordsRef}
-          form={form}
+        <QueryBar
+          ref={inputRef}
+          query={query}
           corpus={corpus}
           busy={busy}
           invalid={invalid}
-          filtersOpen={filtersOpen}
-          onFiltersOpen={setFiltersOpen}
-          onChange={setForm}
-          onSubmit={() => {
-            const problem = validate(form, corpus);
-            if (problem) {
-              setError(problem.message);
-              setInvalid(problem.field);
-              setFiltersOpen(true); // the field at fault must not stay folded away
-              return;
-            }
-            setActive(null); // a hand-made search is no longer "the example"
-            runSearch(form, true);
+          onText={(q) => {
+            setQuery((prev) => ({ ...prev, q }));
+            if (invalid) setInvalid(false);
           }}
+          onRange={(range: Range) => submit({ ...query, range })}
+          onSubmit={() => submit(query)}
         />
 
         {error && (
-          <p id="search-error" className={s.error} role="alert">
+          <div id="search-error" className={s.error} role="alert">
             <AlertIcon />
-            {error}
-          </p>
+            <p>{error.message}</p>
+            {error.retry && lastRun.current && (
+              <button type="button" className={s.retry} onClick={() => lastRun.current && runSearch(lastRun.current, false)}>
+                Try again
+              </button>
+            )}
+          </div>
         )}
 
         {corpus && <Examples examples={examples} active={active} onRun={(i) => runExample(i, overview, true)} />}
+
+        {loaded && !overview && <Unreachable />}
+        {loaded && overview && !corpus && <FirstRun />}
 
         <div ref={readoutRef} className={s.anchor}>
           {result && <Readout result={result} stale={busy} />}
         </div>
 
-        <p className={s.status} aria-live="polite" data-help={(result && hits.length === 0) || undefined}>
-          {busy && !result
-            ? 'Searching…'
-            : result && hits.length === 0
-              ? m && m.segments_considered > 0
-                ? `No line matched. The search still ran: ${m.segments_scanned} of ${m.segments_considered} segments were read. A line must contain every word, so try fewer words or a wider time range.`
-                : 'No line matched.'
-              : result
-                ? `${hits.length} line${hits.length === 1 ? '' : 's'}${result.truncated ? ' (more match; showing the earliest)' : ''}`
-                : ''}
-        </p>
-
-        {result && <Results hits={hits} stale={busy} />}
+        {(result || firstSearch) && (
+          <Results
+            key={seq}
+            result={result}
+            stale={busy && !!result}
+            limit={query.limit}
+            terms={marks.terms}
+            tags={marks.tags}
+            extent={extent}
+            onLimit={(limit) => submit({ ...query, limit }, false)}
+            onTag={onTag}
+          />
+        )}
       </main>
-      <Footer credit={overview?.credit} aboutUrl={overview?.about_url} />
+      <Footer credit={overview?.credit} aboutUrl={overview?.about_url} wide />
     </>
   );
 }

@@ -126,6 +126,12 @@ func (s *Service) Search(ctx context.Context, req *stratav1.SearchRequest) (*str
 			}
 		}
 	}
+	if h := res.Histogram; h != nil {
+		resp.Histogram = &stratav1.Histogram{StartUnixNano: h.Start, BucketNanos: h.Width, Counts: make([]uint64, len(h.Counts))}
+		for i, c := range h.Counts {
+			resp.Histogram.Counts[i] = uint64(c)
+		}
+	}
 	resp.Hits = make([]*stratav1.SearchHit, len(res.Hits))
 	for i, h := range res.Hits {
 		resp.Hits[i] = &stratav1.SearchHit{

@@ -1,0 +1,13 @@
+.panel { margin-top: var(--space-5); padding: var(--space-6) var(--space-5); border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); }
+.title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.025em; }
+.lede { margin-top: var(--space-2); max-width: 62ch; color: var(--fg-muted); }
+.lede code { color: var(--fg); font-size: var(--text-sm); }
+.steps { display: grid; gap: var(--space-3); margin: var(--space-5) 0 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { display: grid; gap: var(--space-2); max-width: 62ch; counter-increment: step; }
+.steps span { font-size: var(--text-sm); }
+.steps code {
+  justify-self: start; max-width: 100%; overflow-wrap: anywhere; padding: 0.5rem 0.75rem;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius); font-size: var(--text-sm);
+}
+.note { margin-top: var(--space-5); font-size: var(--text-xs); color: var(--fg-muted); max-width: 62ch; }
+@media (max-width: 40rem) { .panel { padding: var(--space-5) var(--space-4); } }

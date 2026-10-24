@@ -134,6 +134,18 @@ type searchJSON struct {
 	// the page falls back to the counts in Metrics.
 	Segments          []segmentJSON `json:"segments"`
 	SegmentsTruncated bool          `json:"segments_truncated"`
+	// Histogram counts every matching line by time, including those beyond
+	// the limit. Null when no segment overlaps the time range.
+	Histogram *histogramJSON `json:"histogram"`
+}
+
+// histogramJSON is in milliseconds, which is what a browser's Date takes.
+// Buckets are at least a second wide and aligned to their width, so no
+// precision is lost.
+type histogramJSON struct {
+	StartMs  int64    `json:"start_ms"`
+	BucketMs int64    `json:"bucket_ms"`
+	Counts   []uint64 `json:"counts"`
 }
 
 var segmentKinds = map[stratav1.SegmentOutcome_Kind]string{
@@ -194,6 +206,9 @@ func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
 			Last:  time.Unix(0, o.MaxUnixNano).UTC().Format("2006-01-02 15:04"),
 			Size:  int64(o.SizeBytes), BytesRead: int64(o.BytesRead), Hits: int64(o.Hits),
 		})
+	}
+	if hg := resp.Histogram; hg != nil && hg.BucketNanos > 0 {
+		out.Histogram = &histogramJSON{StartMs: hg.StartUnixNano / 1e6, BucketMs: hg.BucketNanos / 1e6, Counts: hg.Counts}
 	}
 	for i, hit := range resp.Hits {
 		out.Hits[i] = hitJSON{

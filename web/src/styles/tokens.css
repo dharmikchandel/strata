@@ -5,10 +5,13 @@
      --read   orange: data was fetched from storage (also the brand accent)
      --bloom  steel blue: ruled out by a bloom filter, not opened
      --time   graphite: ruled out by its time range, not opened
+   Log levels name severity, in the log viewer only:
+     --sev-error  coral, the error hue: FATAL, ERROR, SEVERE, FAILURE...
+     --sev-warn   yellow (well clear of the read orange): WARN, WARNING
    Everything else is neutral. */
 /* Type: three faces, three jobs.
-     --font-display  Bricolage Grotesque: headlines, the readout sentence, page
-                     titles. Its optical-size axis tightens it at large sizes.
+     --font-display  Bricolage Grotesque: headlines, the readout sentence, the
+                     corpus name. Its optical-size axis tightens it at large sizes.
      --font-sans     Hanken Grotesk: interface text, labels, prose.
      --font-mono     JetBrains Mono: log lines, IDs, times and numbers only. */
 :root {
@@ -24,7 +27,6 @@
   --text-lg: 1.1875rem;   /* 19px landing lede */
   --text-xl: 1.5rem;      /* 24px section titles on phones */
   --text-2xl: 2.25rem;    /* 36px readout sentence, landing section titles */
-  --text-3xl: 2.75rem;    /* 44px page title */
   --text-hero: clamp(3rem, 1.2rem + 5.1vw, 6rem); /* landing headlines only */
 
   --tracking-display: -0.035em;
@@ -67,6 +69,8 @@
   --bloom: #5b80b2;
   --time: #62666f; /* 3.2:1 on the panel: a ruled-out bar must still be seen */
   --error: #ff8473;
+  --sev-error: #ff8473;
+  --sev-warn: #e6c768;
   --focus: #c8ccd4;
   --invert-bg: #ececef;
   --invert-fg: #0a0b0d;
@@ -90,6 +94,8 @@
     --bloom: #5479ad;
     --time: #8e919a;
     --error: #c0321d;
+    --sev-error: #a82a17; /* deeper than --error: 12px chips on a tint, 5:1 or more */
+    --sev-warn: #745600;
     --focus: #3a3d45;
     --invert-bg: #111114;
     --invert-fg: #f8f8f9;
@@ -113,6 +119,8 @@
   --bloom: #5479ad;
   --time: #8e919a;
   --error: #c0321d;
+  --sev-error: #a82a17;
+  --sev-warn: #745600;
   --focus: #3a3d45;
   --invert-bg: #111114;
   --invert-fg: #f8f8f9;

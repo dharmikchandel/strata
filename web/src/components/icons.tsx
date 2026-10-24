@@ -66,3 +66,35 @@ export const ArrowUpRightIcon = (p: IconProps) => (
     <path d="M5 11 11 5M6 5h5v5" />
   </svg>
 );
+
+export const ClockIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <circle cx="8" cy="8" r="5.75" />
+    <path d="M8 4.75V8l2.25 1.5" />
+  </svg>
+);
+
+export const CaretDownIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
+  </svg>
+);
+
+export const CopyIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <rect x="5.25" y="5.25" width="8" height="8" rx="1.5" />
+    <path d="M10.75 5.25V3.75a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1.5" />
+  </svg>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <path d="M8 3.5v9M3.5 8h9" />
+  </svg>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <path d="m3.5 8.5 3 3 6-7" />
+  </svg>
+);

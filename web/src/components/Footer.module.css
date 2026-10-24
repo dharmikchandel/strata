@@ -4,6 +4,7 @@
   padding: var(--space-5) var(--gutter-r) max(var(--space-6), env(safe-area-inset-bottom)) var(--gutter);
   border-top: 1px solid var(--line); font-size: var(--text-xs); color: var(--fg-muted);
 }
+.foot[data-wide] { max-width: none; margin-left: var(--gutter); margin-right: var(--gutter-r); padding-left: 0; padding-right: 0; }
 .credit { max-width: 80ch; }
 .about { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--fg); white-space: nowrap; }
 @media (pointer: coarse) { .about { padding: 0.8rem 0; } }

@@ -1,0 +1,81 @@
+/* The trigger lives inside the search bar, divided from the words by a hairline. */
+.trigger {
+  display: inline-flex; align-items: center; gap: 0.5rem; flex: none;
+  padding: 0 0.95rem; border: 0; border-left: 1px solid var(--line); background: transparent;
+  color: var(--fg); font-size: var(--text-sm); font-weight: 500; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-fast);
+}
+.trigger svg { color: var(--fg-muted); flex: none; }
+.trigger[aria-expanded='true'] { background: var(--bg-raised); }
+.trigger[aria-expanded='true'] .caret { transform: rotate(180deg); }
+.caret { transition: transform var(--dur-fast); }
+.trigger:focus-visible { outline-offset: -2px; }
+
+/* The panel. Popovers come with browser styles (centred, canvas colours),
+   replaced here; its place under the trigger is set from script. */
+.pop {
+  position: fixed; inset: auto; top: var(--pop-top, 4rem); right: var(--pop-right, 1rem); margin: 0;
+  width: 22rem; max-width: calc(100vw - 2rem); padding: var(--space-4);
+  background: var(--bg-panel); color: var(--fg); border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+}
+.note { font-size: var(--text-xs); color: var(--fg-muted); }
+.note span { color: var(--fg); white-space: nowrap; }
+
+.presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-1); margin-top: var(--space-3); }
+.presets button {
+  height: 2.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: transparent;
+  color: var(--fg-muted); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums;
+  transition: color var(--dur-fast), background-color var(--dur-fast), border-color var(--dur-fast);
+}
+.presets button[aria-pressed='true'] { color: var(--invert-fg); background: var(--invert-bg); border-color: var(--invert-bg); }
+
+.custom { margin: var(--space-4) 0 0; padding: var(--space-4) 0 0; border: 0; border-top: 1px solid var(--line); display: grid; gap: var(--space-2); min-width: 0; }
+.custom legend { float: left; width: 100%; margin-bottom: var(--space-2); padding: 0; font-size: var(--text-2xs); font-weight: 600; color: var(--fg-muted); letter-spacing: 0.01em; }
+.custom label {
+  display: grid; grid-template-columns: 3.25rem 1fr; align-items: center;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg);
+}
+.custom label:focus-within { border-color: var(--line-strong); }
+.custom label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: -1px; }
+.custom span { padding-left: 0.75rem; font-size: var(--text-xs); color: var(--fg-muted); }
+.custom input {
+  min-width: 0; height: 2.25rem; padding: 0 0.75rem 0 0; border: 0; background: transparent; outline: none;
+  font-family: var(--font-mono); font-size: var(--text-sm); font-variant-numeric: tabular-nums;
+}
+.custom input[aria-invalid] { color: var(--error); }
+.custom label:has(input[aria-invalid]) { border-color: var(--error); }
+.error { margin-top: var(--space-2); font-size: var(--text-xs); font-weight: 500; color: var(--error); }
+
+.actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-3); }
+.quiet {
+  padding: 0.35rem 0; border: 0; background: transparent; color: var(--fg-muted); font-size: var(--text-xs); font-weight: 500;
+  text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}
+.apply {
+  margin-left: auto; height: 2.25rem; padding: 0 1rem; border: 0; border-radius: var(--radius);
+  background: var(--invert-bg); color: var(--invert-fg); font-size: var(--text-sm); font-weight: 600;
+  transition: background-color var(--dur-fast);
+}
+
+@media (hover: hover) {
+  .trigger:hover { background: var(--bg-raised); }
+  .presets button:hover:not([aria-pressed='true']) { color: var(--fg); border-color: var(--line-strong); background: var(--bg-raised); }
+  .quiet:hover { color: var(--fg); text-decoration-color: currentColor; }
+  .apply:hover { background: var(--invert-hover); }
+}
+
+@media (max-width: 40rem) {
+  .trigger { flex: 1; justify-content: center; border-left: 0; border-top: 1px solid var(--line); height: 2.9rem; }
+  /* Full width under the bar: anchored to the trigger's right edge it would
+     run off the left of a phone screen. */
+  .pop { left: var(--gutter); right: var(--gutter-r); width: auto; max-width: none; }
+  .custom input { font-size: var(--text-md); } /* 16px or more: no zoom on focus in iOS */
+}
+
+@media (pointer: coarse) {
+  .trigger { min-height: 2.75rem; }
+  .presets button, .apply { height: 2.75rem; }
+  .custom input { height: 2.75rem; }
+  .quiet { min-height: 2.75rem; }
+}

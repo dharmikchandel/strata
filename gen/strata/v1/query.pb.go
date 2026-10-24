@@ -73,7 +73,7 @@ func (x SegmentOutcome_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SegmentOutcome_Kind.Descriptor instead.
 func (SegmentOutcome_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_strata_v1_query_proto_rawDescGZIP(), []int{4, 0}
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type SearchRequest struct {
@@ -342,8 +342,14 @@ type SearchResponse struct {
 	// always complete.
 	Segments          []*SegmentOutcome `protobuf:"bytes,4,rep,name=segments,proto3" json:"segments,omitempty"`
 	SegmentsTruncated bool              `protobuf:"varint,5,opt,name=segments_truncated,json=segmentsTruncated,proto3" json:"segments_truncated,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Matching lines over time, counted in every segment that was read. A
+	// skipped segment holds no match by construction (its time range misses the
+	// query's, or a query word is definitely not in it), so these counts cover
+	// every matching line, not only the ones returned in hits. Absent when no
+	// segment overlaps the time range.
+	Histogram     *Histogram `protobuf:"bytes,6,opt,name=histogram,proto3" json:"histogram,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SearchResponse) Reset() {
@@ -411,6 +417,77 @@ func (x *SearchResponse) GetSegmentsTruncated() bool {
 	return false
 }
 
+func (x *SearchResponse) GetHistogram() *Histogram {
+	if x != nil {
+		return x.Histogram
+	}
+	return nil
+}
+
+// Counts per time bucket. Buckets are of equal width, aligned to multiples of
+// that width since the Unix epoch, and together cover the part of the query's
+// time range that holds data.
+type Histogram struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Start of the first bucket, in nanoseconds since the Unix epoch.
+	StartUnixNano int64    `protobuf:"varint,1,opt,name=start_unix_nano,json=startUnixNano,proto3" json:"start_unix_nano,omitempty"`
+	BucketNanos   int64    `protobuf:"varint,2,opt,name=bucket_nanos,json=bucketNanos,proto3" json:"bucket_nanos,omitempty"`
+	Counts        []uint64 `protobuf:"varint,3,rep,packed,name=counts,proto3" json:"counts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Histogram) Reset() {
+	*x = Histogram{}
+	mi := &file_strata_v1_query_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Histogram) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Histogram) ProtoMessage() {}
+
+func (x *Histogram) ProtoReflect() protoreflect.Message {
+	mi := &file_strata_v1_query_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Histogram.ProtoReflect.Descriptor instead.
+func (*Histogram) Descriptor() ([]byte, []int) {
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Histogram) GetStartUnixNano() int64 {
+	if x != nil {
+		return x.StartUnixNano
+	}
+	return 0
+}
+
+func (x *Histogram) GetBucketNanos() int64 {
+	if x != nil {
+		return x.BucketNanos
+	}
+	return 0
+}
+
+func (x *Histogram) GetCounts() []uint64 {
+	if x != nil {
+		return x.Counts
+	}
+	return nil
+}
+
 // What one search did with one segment.
 type SegmentOutcome struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
@@ -431,7 +508,7 @@ type SegmentOutcome struct {
 
 func (x *SegmentOutcome) Reset() {
 	*x = SegmentOutcome{}
-	mi := &file_strata_v1_query_proto_msgTypes[4]
+	mi := &file_strata_v1_query_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +520,7 @@ func (x *SegmentOutcome) String() string {
 func (*SegmentOutcome) ProtoMessage() {}
 
 func (x *SegmentOutcome) ProtoReflect() protoreflect.Message {
-	mi := &file_strata_v1_query_proto_msgTypes[4]
+	mi := &file_strata_v1_query_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +533,7 @@ func (x *SegmentOutcome) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SegmentOutcome.ProtoReflect.Descriptor instead.
 func (*SegmentOutcome) Descriptor() ([]byte, []int) {
-	return file_strata_v1_query_proto_rawDescGZIP(), []int{4}
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SegmentOutcome) GetKind() SegmentOutcome_Kind {
@@ -516,7 +593,7 @@ type StatsRequest struct {
 
 func (x *StatsRequest) Reset() {
 	*x = StatsRequest{}
-	mi := &file_strata_v1_query_proto_msgTypes[5]
+	mi := &file_strata_v1_query_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +605,7 @@ func (x *StatsRequest) String() string {
 func (*StatsRequest) ProtoMessage() {}
 
 func (x *StatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_strata_v1_query_proto_msgTypes[5]
+	mi := &file_strata_v1_query_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +618,7 @@ func (x *StatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatsRequest.ProtoReflect.Descriptor instead.
 func (*StatsRequest) Descriptor() ([]byte, []int) {
-	return file_strata_v1_query_proto_rawDescGZIP(), []int{5}
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{6}
 }
 
 type StatsResponse struct {
@@ -562,7 +639,7 @@ type StatsResponse struct {
 
 func (x *StatsResponse) Reset() {
 	*x = StatsResponse{}
-	mi := &file_strata_v1_query_proto_msgTypes[6]
+	mi := &file_strata_v1_query_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +651,7 @@ func (x *StatsResponse) String() string {
 func (*StatsResponse) ProtoMessage() {}
 
 func (x *StatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_strata_v1_query_proto_msgTypes[6]
+	mi := &file_strata_v1_query_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,7 +664,7 @@ func (x *StatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatsResponse.ProtoReflect.Descriptor instead.
 func (*StatsResponse) Descriptor() ([]byte, []int) {
-	return file_strata_v1_query_proto_rawDescGZIP(), []int{6}
+	return file_strata_v1_query_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *StatsResponse) GetSegments() uint32 {
@@ -657,13 +734,18 @@ const file_strata_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"bytes_read\x18\x05 \x01(\x04R\tbytesRead\x12\x18\n" +
 	"\aretries\x18\x06 \x01(\rR\aretries\x12#\n" +
-	"\rserver_micros\x18\a \x01(\x04R\fserverMicros\"\xf2\x01\n" +
+	"\rserver_micros\x18\a \x01(\x04R\fserverMicros\"\xa6\x02\n" +
 	"\x0eSearchResponse\x12(\n" +
 	"\x04hits\x18\x01 \x03(\v2\x14.strata.v1.SearchHitR\x04hits\x12\x1c\n" +
 	"\ttruncated\x18\x02 \x01(\bR\ttruncated\x122\n" +
 	"\ametrics\x18\x03 \x01(\v2\x18.strata.v1.SearchMetricsR\ametrics\x125\n" +
 	"\bsegments\x18\x04 \x03(\v2\x19.strata.v1.SegmentOutcomeR\bsegments\x12-\n" +
-	"\x12segments_truncated\x18\x05 \x01(\bR\x11segmentsTruncated\"\xe2\x02\n" +
+	"\x12segments_truncated\x18\x05 \x01(\bR\x11segmentsTruncated\x122\n" +
+	"\thistogram\x18\x06 \x01(\v2\x14.strata.v1.HistogramR\thistogram\"n\n" +
+	"\tHistogram\x12&\n" +
+	"\x0fstart_unix_nano\x18\x01 \x01(\x03R\rstartUnixNano\x12!\n" +
+	"\fbucket_nanos\x18\x02 \x01(\x03R\vbucketNanos\x12\x16\n" +
+	"\x06counts\x18\x03 \x03(\x04R\x06counts\"\xe2\x02\n" +
 	"\x0eSegmentOutcome\x122\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x1e.strata.v1.SegmentOutcome.KindR\x04kind\x12\x1d\n" +
 	"\n" +
@@ -704,35 +786,37 @@ func file_strata_v1_query_proto_rawDescGZIP() []byte {
 }
 
 var file_strata_v1_query_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_strata_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_strata_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_strata_v1_query_proto_goTypes = []any{
 	(SegmentOutcome_Kind)(0), // 0: strata.v1.SegmentOutcome.Kind
 	(*SearchRequest)(nil),    // 1: strata.v1.SearchRequest
 	(*SearchHit)(nil),        // 2: strata.v1.SearchHit
 	(*SearchMetrics)(nil),    // 3: strata.v1.SearchMetrics
 	(*SearchResponse)(nil),   // 4: strata.v1.SearchResponse
-	(*SegmentOutcome)(nil),   // 5: strata.v1.SegmentOutcome
-	(*StatsRequest)(nil),     // 6: strata.v1.StatsRequest
-	(*StatsResponse)(nil),    // 7: strata.v1.StatsResponse
-	nil,                      // 8: strata.v1.SearchRequest.TagsEntry
-	nil,                      // 9: strata.v1.SearchHit.TagsEntry
+	(*Histogram)(nil),        // 5: strata.v1.Histogram
+	(*SegmentOutcome)(nil),   // 6: strata.v1.SegmentOutcome
+	(*StatsRequest)(nil),     // 7: strata.v1.StatsRequest
+	(*StatsResponse)(nil),    // 8: strata.v1.StatsResponse
+	nil,                      // 9: strata.v1.SearchRequest.TagsEntry
+	nil,                      // 10: strata.v1.SearchHit.TagsEntry
 }
 var file_strata_v1_query_proto_depIdxs = []int32{
-	8, // 0: strata.v1.SearchRequest.tags:type_name -> strata.v1.SearchRequest.TagsEntry
-	9, // 1: strata.v1.SearchHit.tags:type_name -> strata.v1.SearchHit.TagsEntry
-	2, // 2: strata.v1.SearchResponse.hits:type_name -> strata.v1.SearchHit
-	3, // 3: strata.v1.SearchResponse.metrics:type_name -> strata.v1.SearchMetrics
-	5, // 4: strata.v1.SearchResponse.segments:type_name -> strata.v1.SegmentOutcome
-	0, // 5: strata.v1.SegmentOutcome.kind:type_name -> strata.v1.SegmentOutcome.Kind
-	1, // 6: strata.v1.QueryService.Search:input_type -> strata.v1.SearchRequest
-	6, // 7: strata.v1.QueryService.Stats:input_type -> strata.v1.StatsRequest
-	4, // 8: strata.v1.QueryService.Search:output_type -> strata.v1.SearchResponse
-	7, // 9: strata.v1.QueryService.Stats:output_type -> strata.v1.StatsResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	9,  // 0: strata.v1.SearchRequest.tags:type_name -> strata.v1.SearchRequest.TagsEntry
+	10, // 1: strata.v1.SearchHit.tags:type_name -> strata.v1.SearchHit.TagsEntry
+	2,  // 2: strata.v1.SearchResponse.hits:type_name -> strata.v1.SearchHit
+	3,  // 3: strata.v1.SearchResponse.metrics:type_name -> strata.v1.SearchMetrics
+	6,  // 4: strata.v1.SearchResponse.segments:type_name -> strata.v1.SegmentOutcome
+	5,  // 5: strata.v1.SearchResponse.histogram:type_name -> strata.v1.Histogram
+	0,  // 6: strata.v1.SegmentOutcome.kind:type_name -> strata.v1.SegmentOutcome.Kind
+	1,  // 7: strata.v1.QueryService.Search:input_type -> strata.v1.SearchRequest
+	7,  // 8: strata.v1.QueryService.Stats:input_type -> strata.v1.StatsRequest
+	4,  // 9: strata.v1.QueryService.Search:output_type -> strata.v1.SearchResponse
+	8,  // 10: strata.v1.QueryService.Stats:output_type -> strata.v1.StatsResponse
+	9,  // [9:11] is the sub-list for method output_type
+	7,  // [7:9] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_strata_v1_query_proto_init() }
@@ -746,7 +830,7 @@ func file_strata_v1_query_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_strata_v1_query_proto_rawDesc), len(file_strata_v1_query_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

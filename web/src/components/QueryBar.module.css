@@ -1,0 +1,60 @@
+/* The search bar: one bordered instrument with the query box, the time
+   control and the action in a single 56px row on wide screens. */
+.form { margin: 0; }
+.bar {
+  display: flex; align-items: stretch;
+  background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  transition: border-color var(--dur-fast);
+}
+.bar:focus-within { border-color: var(--line-strong); }
+
+.box { position: relative; flex: 1 1 18rem; min-width: 0; display: flex; align-items: center; }
+.icon { position: absolute; left: 0.95rem; color: var(--fg-muted); pointer-events: none; }
+/* The query is machine input (terms and key=value tags), so it is set in mono. */
+.box input {
+  width: 100%; height: 3.5rem; padding: 0 2.75rem 0 2.7rem;
+  border: 0; background: transparent; outline: none;
+  font-family: var(--font-mono); font-size: var(--text-base); font-weight: 450; letter-spacing: 0;
+}
+.box input::placeholder { font-family: var(--font-sans); font-size: var(--text-md); font-weight: 400; }
+.box:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--radius-lg) 0 0 var(--radius-lg); }
+.box input[aria-invalid] { color: var(--error); }
+
+/* The "/" shortcut, shown only while the box is empty and unfocused. */
+.slash {
+  position: absolute; right: 0.9rem; display: grid; place-items: center; width: 1.35rem; height: 1.35rem;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--fg-muted); pointer-events: none;
+}
+.box input:not(:placeholder-shown) ~ .slash, .box input:focus ~ .slash { display: none; }
+
+.submit {
+  flex: none; margin: 0.4rem; padding: 0 1.15rem; min-width: 6.5rem;
+  border: 0; border-radius: var(--radius); font-weight: 600; font-size: var(--text-base);
+  background: var(--invert-bg); color: var(--invert-fg);
+  transition: background-color var(--dur-fast);
+}
+@media (hover: hover) { .submit:hover:not(:disabled) { background: var(--invert-hover); } }
+.submit:disabled { opacity: 0.6; cursor: progress; }
+
+.help { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--fg-muted); min-height: 1.6em; }
+.help code { font-size: var(--text-2xs); color: var(--fg); }
+.term { padding: 0.05rem 0.35rem; border-radius: var(--radius-sm); background: var(--bg-raised); border: 1px solid var(--line); }
+.help kbd { display: inline-block; min-width: 1.2rem; padding: 0 0.3rem; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); text-align: center; font-size: var(--text-2xs); color: var(--fg); }
+
+/* Phones: the box takes the full width; the time control and the action
+   share the row under it. */
+@media (max-width: 40rem) {
+  .bar { flex-wrap: wrap; overflow: hidden; }
+  .box { flex-basis: 100%; }
+  .box input { padding-right: 1rem; font-size: var(--text-md); } /* 16px or more: no zoom on focus in iOS */
+  .slash { display: none; }
+  .submit { flex: 1; margin: 0; border-radius: 0; height: 2.9rem; }
+}
+/* Without a keyboard there is no "/" to press. */
+@media (pointer: coarse), (hover: none) {
+  .slash, .keys { display: none; }
+}
+@media (pointer: coarse) {
+  .submit { min-height: 2.75rem; }
+}

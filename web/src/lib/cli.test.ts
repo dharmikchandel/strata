@@ -18,6 +18,7 @@ describe('cliOutput', () => {
       truncated: true,
       metrics: { segments_considered: 73, skipped_by_time: 0, skipped_by_bloom: 71, segments_scanned: 2, bytes_read: 27682406, retries: 0, server_micros: 133452 },
       round_trip_ms: 139.24,
+      histogram: null,
       segments: [],
       segments_truncated: false,
     };

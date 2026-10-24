@@ -1,0 +1,60 @@
+.chart { margin: 0; padding: var(--space-4) var(--space-4) 0; border-bottom: 1px solid var(--line); }
+.caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; margin-bottom: var(--space-3); }
+.title { font-size: var(--text-sm); font-weight: 600; }
+.sub { font-size: var(--text-xs); color: var(--fg-muted); }
+
+/* The plot, with the y labels in a narrow gutter on its left: the top one
+   names the gridline, 0 the baseline. */
+.frame { position: relative; display: grid; grid-template-columns: 2.75rem minmax(0, 1fr); container-type: inline-size; }
+.yTop, .yZero { grid-column: 1; font-size: var(--text-2xs); color: var(--fg-muted); line-height: 1; }
+.yTop { grid-row: 1; align-self: start; transform: translateY(-50%); }
+.yZero { grid-row: 1; align-self: end; transform: translateY(50%); }
+
+.plot {
+  grid-column: 2; grid-row: 1; position: relative; display: flex; align-items: flex-end; height: 5rem;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line-strong); border-radius: 0;
+}
+.plot:focus-visible { outline-offset: 4px; border-radius: var(--radius-sm); }
+/* Each bucket is a full-height slot, so the whole column is the hover target,
+   not just the painted bar. Slots leave a 2px gap between bars. */
+.slot { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; padding: 0 1px; }
+.bar { display: block; width: 100%; max-width: 24px; background: var(--fg-muted); border-radius: 4px 4px 0 0; transition: background-color var(--dur-fast); }
+.slot[data-active] { background: color-mix(in srgb, var(--fg) 12%, transparent); outline: 1px solid var(--line-strong); outline-offset: -1px; }
+.slot[data-active] .bar { background: var(--fg); }
+
+.tip {
+  position: absolute; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 2;
+  display: grid; gap: 0.1rem; padding: 0.45rem 0.65rem; white-space: nowrap; pointer-events: none;
+  background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  font-size: var(--text-xs); color: var(--fg-muted);
+}
+.tip b { font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
+.tip span:last-child { font-size: var(--text-2xs); }
+
+.axis { display: flex; justify-content: space-between; margin: var(--space-1) 0 0 2.75rem; font-size: var(--text-2xs); color: var(--fg-muted); }
+
+.table { margin: var(--space-3) calc(var(--space-4) * -1) 0; border-top: 1px solid var(--line); }
+.table summary {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem var(--space-4);
+  list-style: none; cursor: pointer; font-size: var(--text-sm); font-weight: 500; color: var(--fg-muted);
+}
+.table summary::-webkit-details-marker { display: none; }
+.chev { transition: transform var(--dur-fast); flex: none; }
+.table[open] .chev { transform: rotate(90deg); }
+.table table { width: 100%; max-width: 32rem; margin: 0 0 var(--space-3) calc(var(--space-4) + 1.5rem); border-collapse: collapse; font-size: var(--text-xs); }
+.table th { text-align: left; font-weight: 600; color: var(--fg-muted); padding: 0.3rem 0; border-bottom: 1px solid var(--line); }
+.table td { padding: 0.25rem 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.table th:last-child, .table td:last-child { text-align: right; }
+
+/* Many buckets on a narrow plot: no gap, and a 3px floor, so a column never
+   thins into a rule. */
+@container (max-width: 32rem) { .slot { padding: 0; } .bar { min-width: 3px; border-radius: 2px 2px 0 0; } }
+
+@media (hover: hover) { .table summary:hover { color: var(--fg); } }
+@media (max-width: 40rem) {
+  .chart { padding: var(--space-3) var(--space-3) 0; }
+  .table { margin: var(--space-3) calc(var(--space-3) * -1) 0; }
+  .table summary { padding: 0.7rem var(--space-3); }
+  .table table { margin-left: var(--space-3); width: calc(100% - 2 * var(--space-3)); }
+}
+@media (pointer: coarse) { .table summary { min-height: 2.75rem; } }

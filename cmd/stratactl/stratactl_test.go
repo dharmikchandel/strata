@@ -67,6 +67,7 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 			{Kind: stratav1.SegmentOutcome_KIND_SCANNED, SegmentId: "hit", SizeBytes: 2048, BytesRead: 2048, Hits: 1},
 			{Kind: stratav1.SegmentOutcome_KIND_UNSPECIFIED, SegmentId: "from-a-newer-server"},
 		},
+		Histogram: &stratav1.Histogram{StartUnixNano: time.Date(2005, 6, 3, 15, 0, 0, 0, time.UTC).UnixNano(), BucketNanos: int64(time.Minute), Counts: []uint64{0, 7, 1}},
 	}}
 	h, err := newUIHandler(stub, uiOptions{})
 	if err != nil {
@@ -104,6 +105,9 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 	}
 	if s := out.Segments[2]; s.ID != "hit" || s.BytesRead != 2048 || s.Hits != 1 || s.Size != 2048 {
 		t.Fatalf("scanned segment: %+v", s)
+	}
+	if hg := out.Histogram; hg == nil || hg.StartMs != time.Date(2005, 6, 3, 15, 0, 0, 0, time.UTC).UnixMilli() || hg.BucketMs != 60_000 || fmt.Sprint(hg.Counts) != "[0 7 1]" {
+		t.Fatalf("histogram: %+v", out.Histogram)
 	}
 	// The hostile message travels as data inside JSON; the page inserts it as text.
 	if !strings.Contains(out.Hits[0].Message, "<script>") {
@@ -261,6 +265,10 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 	if string(raw["segments"]) != "[]" || string(raw["segments_truncated"]) != "true" {
 		t.Fatalf("segments=%s truncated=%s", raw["segments"], raw["segments_truncated"])
 	}
+	// No histogram from the server (nothing in range) is an explicit null.
+	if string(raw["histogram"]) != "null" {
+		t.Fatalf("histogram=%s", raw["histogram"])
+	}
 }
 
 func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
@@ -367,14 +375,14 @@ func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
 		t.Error("the page should extend under the notch and pad by the safe-area insets")
 	}
 	// Log search terms must not be auto-capitalised or autocorrected.
-	form := file("SearchForm.tsx")
+	form := file("QueryBar.tsx")
 	for _, want := range []string{`autoCapitalize: 'off'`, `autoCorrect: 'off'`, `spellCheck: false`, `enterKeyHint="search"`} {
 		if !strings.Contains(form, want) {
 			t.Errorf("the search input is missing %s", want)
 		}
 	}
 	// Rows become blocks on phones, which drops table semantics unless roles are explicit.
-	for _, name := range []string{"Results.tsx", "ReadList.tsx"} {
+	for _, name := range []string{"LogViewer.tsx", "ReadList.tsx"} {
 		src := file(name)
 		for _, role := range []string{`role="table"`, `role="rowgroup"`, `role="row"`, `role="columnheader"`, `role="cell"`} {
 			if !strings.Contains(src, role) {
@@ -382,9 +390,10 @@ func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
 			}
 		}
 	}
-	// The filter toggle must point at the group it opens.
-	if !strings.Contains(form, `aria-controls="filters"`) || !strings.Contains(form, `id="filters"`) || !strings.Contains(form, `aria-expanded=`) {
-		t.Error("the Filters toggle needs aria-controls and aria-expanded")
+	// The time control must point at the panel it opens and say whether it is open.
+	timeRange := file("TimeRange.tsx")
+	if !strings.Contains(timeRange, `aria-controls="time-range"`) || !strings.Contains(timeRange, `id="time-range"`) || !strings.Contains(timeRange, `aria-expanded=`) {
+		t.Error("the time control needs aria-controls and aria-expanded")
 	}
 	for path, src := range css {
 		src = stripCSSComments(src)
