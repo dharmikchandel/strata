@@ -1,13 +1,19 @@
 import type { Corpus, Example } from './api';
 
 // A search as the page holds it: everything typed in the one query box, a
-// time range, and how many lines to show. It is a plain object that turns
-// into URL parameters and back, so a search can be written to the address bar.
+// time range, how many lines to show and which end of the matches to show.
+// It is a plain object that turns into URL parameters and back, so a search
+// can be written to the address bar.
 export interface Query {
   q: string; // words and key=value tags, as typed
   range: Range;
   limit: number;
+  order: Order;
 }
+
+// Newest first is the default, as in other log tools: the latest matching
+// lines, latest at the top. Oldest first shows the earliest ones.
+export type Order = 'newest' | 'oldest';
 
 // "last" counts back from the newest stored line, not from the visitor's
 // clock: with live data that is about now, and with a historical dataset
@@ -28,7 +34,7 @@ export const PRESETS = [
 export const LIMITS = [16, 32, 64, 128, 256, 512, 1024];
 export const MAX_LIMIT = 1024; // the page server's cap (uiMaxLimit in cmd/stratactl/ui.go)
 
-export const emptyQuery: Query = { q: '', range: { kind: 'all' }, limit: 64 };
+export const emptyQuery: Query = { q: '', range: { kind: 'all' }, limit: 64, order: 'newest' };
 
 export interface Parsed {
   words: string; // what goes to the server as text
@@ -77,6 +83,7 @@ export function toApiParams(query: Query, corpus: Corpus | null, now: number = D
     if (r.to.trim()) params.set('to', apiTime(r.to));
   }
   params.set('limit', String(query.limit));
+  params.set('order', query.order);
   return params;
 }
 
@@ -93,7 +100,8 @@ export function parseDuration(s: string): number | null {
   return +m[1] * { s: 1, m: 60, h: 3600, d: 86400 }[m[2] as 's' | 'm' | 'h' | 'd'];
 }
 
-// The address-bar form: q, then either last=1h or from/to, then limit. Only
+// The address-bar form: q, then either last=1h or from/to, then limit and
+// order. Only
 // what differs from an empty search is written, so links stay short.
 export function toURL(query: Query): URLSearchParams {
   const p = new URLSearchParams();
@@ -105,6 +113,7 @@ export function toURL(query: Query): URLSearchParams {
     if (r.to.trim()) p.set('to', apiTime(r.to));
   }
   if (query.limit !== emptyQuery.limit) p.set('limit', String(query.limit));
+  if (query.order !== emptyQuery.order) p.set('order', query.order);
   return p;
 }
 
@@ -120,6 +129,7 @@ export function fromURL(p: URLSearchParams): Query {
     q: p.get('q') ?? '',
     range,
     limit: Number.isInteger(limit) && limit >= 1 && limit <= MAX_LIMIT ? limit : emptyQuery.limit,
+    order: p.get('order') === 'oldest' ? 'oldest' : emptyQuery.order,
   };
 }
 
@@ -134,7 +144,7 @@ export function queryFromExample(ex: Example): Query {
       ? { kind: 'between', from: displayTime(ex.from || ''), to: displayTime(ex.to || '') }
       : { kind: 'all' };
   const limit = ex.limit >= 1 && ex.limit <= MAX_LIMIT ? ex.limit : emptyQuery.limit;
-  return { q, range, limit };
+  return { q, range, limit, order: emptyQuery.order };
 }
 
 // What the time control says: "All time", "Last 1h", or the custom range.

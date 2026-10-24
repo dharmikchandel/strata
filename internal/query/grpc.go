@@ -96,7 +96,7 @@ func (s *Service) Search(ctx context.Context, req *stratav1.SearchRequest) (*str
 
 	res, err := s.engine.Search(ctx, Query{
 		Text: req.GetText(), Tags: req.GetTags(),
-		From: from, To: to, Limit: int(req.GetLimit()),
+		From: from, To: to, Limit: int(req.GetLimit()), NewestFirst: req.GetNewestFirst(),
 	})
 	if err != nil {
 		return nil, s.toStatus(ctx, err)

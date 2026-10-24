@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -54,8 +55,11 @@ type Query struct {
 	// nanoseconds. Zero means unbounded on that side.
 	From, To int64
 	// Limit caps the number of results; zero means DefaultLimit. Results are
-	// the earliest matches, in timestamp order.
+	// the earliest matches, in timestamp order, unless NewestFirst is set.
 	Limit int
+	// NewestFirst returns the latest matches instead, newest first: exactly
+	// the reverse of the order the earliest ones come in.
+	NewestFirst bool
 }
 
 // Hit is one matching log line.
@@ -112,6 +116,7 @@ type SegmentOutcome struct {
 type Result struct {
 	// Hits are sorted by timestamp, ties broken by manifest order (segment
 	// min timestamp, then ID) and then line order, so results are deterministic.
+	// With Query.NewestFirst the order is exactly reversed.
 	Hits []Hit
 	// Truncated is true if more matches existed than Limit allowed.
 	Truncated bool
@@ -227,7 +232,7 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 			// notice that more lines matched than were asked for. Cutting a
 			// segment at exactly limit would hide that (Truncated would stay
 			// false when one segment alone had more matches than the limit).
-			hits, counts, n, err := e.scan(gctx, s, terms, from, to, limit+1, hist)
+			hits, counts, n, err := e.scan(gctx, s, terms, from, to, limit+1, q.NewestFirst, hist)
 			perSegment[i], perCounts[i], bytesRead[i] = hits, counts, n
 			return err
 		})
@@ -254,9 +259,18 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 		hits = append(hits, h...)
 	}
 	sort.SliceStable(hits, func(i, j int) bool { return hits[i].Timestamp < hits[j].Timestamp })
-	truncated := false
-	if len(hits) > limit {
-		hits, truncated = hits[:limit], true
+	truncated := len(hits) > limit
+	if q.NewestFirst {
+		// The latest `limit` lines of the whole result are among each
+		// segment's latest limit+1 (a line's later neighbours in its own
+		// segment are later in the merged order too), so taking the tail of
+		// the merge and reversing it gives exactly the newest first.
+		if truncated {
+			hits = hits[len(hits)-limit:]
+		}
+		slices.Reverse(hits)
+	} else if truncated {
+		hits = hits[:limit]
 	}
 	// Which segments the returned lines came from.
 	fromSegment := make(map[string]int, len(candidates))
@@ -269,10 +283,11 @@ func (e *Engine) search(ctx context.Context, q Query) (*Result, error) {
 	return &Result{Hits: hits, Truncated: truncated, Metrics: m, Segments: outcomes, Histogram: hist}, nil
 }
 
-// scan fetches one segment and returns its matches (at most limit, earliest
-// first; the caller passes the query limit plus one, see search), the count of
-// ALL its matches per bucket of hist, and the number of bytes fetched.
-func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, from, to int64, limit int, hist *Histogram) ([]Hit, []int64, int64, error) {
+// scan fetches one segment and returns its matches (at most limit, in
+// timestamp order: the earliest, or with latest the last ones; the caller
+// passes the query limit plus one, see search), the count of ALL its matches
+// per bucket of hist, and the number of bytes fetched.
+func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, from, to int64, limit int, latest bool, hist *Histogram) ([]Hit, []int64, int64, error) {
 	r, err := e.store.Get(ctx, s.Key)
 	if errors.Is(err, storage.ErrNotFound) {
 		return nil, nil, 0, fmt.Errorf("%w: %s (%s)", ErrSegmentMissing, s.ID, s.Key)
@@ -313,8 +328,14 @@ func (e *Engine) scan(ctx context.Context, s manifest.Segment, terms []string, f
 		}
 	}
 
+	// Line ids follow timestamp order inside a segment, so the earliest
+	// matches are the first ids and the latest the last ones.
 	if len(ids) > limit {
-		ids = ids[:limit]
+		if latest {
+			ids = ids[len(ids)-limit:]
+		} else {
+			ids = ids[:limit]
+		}
 	}
 	hits := make([]Hit, 0, len(ids))
 	for _, id := range ids {

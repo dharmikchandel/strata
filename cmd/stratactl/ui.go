@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -82,6 +83,10 @@ type uiHandler struct {
 	client uiClient
 	opts   uiOptions
 	mux    *http.ServeMux
+	live   liveConfig
+	// liveSlots bounds the live views open at once: each one runs a search
+	// every few seconds for as long as it is open.
+	liveSlots chan struct{}
 }
 
 func newUIHandler(client uiClient, opts uiOptions) (*uiHandler, error) {
@@ -89,10 +94,12 @@ func newUIHandler(client uiClient, opts uiOptions) (*uiHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := &uiHandler{client: client, opts: opts, mux: http.NewServeMux()}
+	h := &uiHandler{client: client, opts: opts, mux: http.NewServeMux(), live: defaultLive}
+	h.liveSlots = make(chan struct{}, h.live.MaxViews)
 	h.mux.Handle("GET /", http.FileServerFS(sub))
 	h.mux.HandleFunc("GET /api/search", h.search)
 	h.mux.HandleFunc("GET /api/overview", h.overview)
+	h.mux.HandleFunc("GET /api/live", h.liveTail)
 	return h, nil
 }
 
@@ -155,25 +162,43 @@ var segmentKinds = map[stratav1.SegmentOutcome_Kind]string{
 	stratav1.SegmentOutcome_KIND_SCANNED:          "scanned",
 }
 
-func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	req := &stratav1.SearchRequest{Text: q.Get("text"), Tags: map[string]string{}, Limit: 100}
-
+// parseTags reads repeated tag=key=value parameters.
+func parseTags(q url.Values) (map[string]string, error) {
+	tags := map[string]string{}
 	for _, t := range q["tag"] {
 		k, v, ok := strings.Cut(t, "=")
 		if !ok || k == "" {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("tag %q must look like key=value", t))
-			return
+			return nil, fmt.Errorf("tag %q must look like key=value", t)
 		}
-		req.Tags[k] = v
+		tags[k] = v
 	}
-	var err error
+	return tags, nil
+}
+
+func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	tags, err := parseTags(q)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	req := &stratav1.SearchRequest{Text: q.Get("text"), Tags: tags, Limit: 100}
 	if req.FromUnixNano, err = parseUITime(q.Get("from")); err != nil {
 		writeError(w, http.StatusBadRequest, "from: "+err.Error())
 		return
 	}
 	if req.ToUnixNano, err = parseUITime(q.Get("to")); err != nil {
 		writeError(w, http.StatusBadRequest, "to: "+err.Error())
+		return
+	}
+	// Newest first is what the page asks for; without the parameter the
+	// answer is the earliest lines, as from the search RPC.
+	switch q.Get("order") {
+	case "", "oldest":
+	case "newest":
+		req.NewestFirst = true
+	default:
+		writeError(w, http.StatusBadRequest, "order must be newest or oldest")
 		return
 	}
 	if s := q.Get("limit"); s != "" {
@@ -187,13 +212,37 @@ func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	resp, err := h.client.Search(r.Context(), req)
+	if err == nil {
+		err = checkOrder(req, resp)
+	}
 	if err != nil {
 		code, msg := httpStatusFor(err)
 		writeError(w, code, msg)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	json.NewEncoder(w).Encode(shapeSearch(resp, time.Since(start)))
+}
+
+// errOldServer means the Strata server predates newest-first searches.
+var errOldServer = errors.New("the Strata server is older than this page and can't put the newest lines first; update it, or choose oldest first")
+
+// checkOrder catches a Strata server older than this page: it ignores
+// newest_first (an unknown field to it) and answers with the earliest lines,
+// which the page would then label as the newest.
+func checkOrder(req *stratav1.SearchRequest, resp *stratav1.SearchResponse) error {
+	h := resp.Hits
+	if req.NewestFirst && len(h) > 1 && h[0].TimestampUnixNano < h[len(h)-1].TimestampUnixNano {
+		return errOldServer
+	}
+	return nil
+}
+
+// shapeSearch turns a search response into what the page draws.
+func shapeSearch(resp *stratav1.SearchResponse, roundTrip time.Duration) searchJSON {
 	out := searchJSON{
-		Truncated: resp.Truncated, RoundTripMs: float64(time.Since(start).Microseconds()) / 1000, Hits: make([]hitJSON, len(resp.Hits)),
+		Truncated: resp.Truncated, RoundTripMs: float64(roundTrip.Microseconds()) / 1000, Hits: make([]hitJSON, len(resp.Hits)),
 		Segments: make([]segmentJSON, 0, len(resp.Segments)), SegmentsTruncated: resp.SegmentsTruncated,
 	}
 	for _, o := range resp.Segments {
@@ -212,12 +261,7 @@ func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
 		out.Histogram = &histogramJSON{StartMs: hg.StartUnixNano / 1e6, BucketMs: hg.BucketNanos / 1e6, Counts: hg.Counts}
 	}
 	for i, hit := range resp.Hits {
-		out.Hits[i] = hitJSON{
-			Time:      time.Unix(0, hit.TimestampUnixNano).UTC().Format("2006-01-02 15:04:05.000000"),
-			Message:   hit.Message,
-			Tags:      hit.Tags,
-			SegmentID: hit.SegmentId,
-		}
+		out.Hits[i] = shapeHit(hit)
 	}
 	if m := resp.Metrics; m != nil {
 		out.Metrics = map[string]int64{
@@ -230,9 +274,16 @@ func (h *uiHandler) search(w http.ResponseWriter, r *http.Request) {
 			"server_micros":       int64(m.ServerMicros),
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "no-store")
-	json.NewEncoder(w).Encode(out)
+	return out
+}
+
+func shapeHit(hit *stratav1.SearchHit) hitJSON {
+	return hitJSON{
+		Time:      time.Unix(0, hit.TimestampUnixNano).UTC().Format("2006-01-02 15:04:05.000000"),
+		Message:   hit.Message,
+		Tags:      hit.Tags,
+		SegmentID: hit.SegmentId,
+	}
 }
 
 // parseUITime reads the formats an HTML datetime-local input produces
@@ -252,6 +303,9 @@ func parseUITime(s string) (int64, error) {
 // httpStatusFor maps a gRPC error to an HTTP status and a message that is safe
 // to show to a visitor: validation messages pass through, internal details don't.
 func httpStatusFor(err error) (int, string) {
+	if errors.Is(err, errOldServer) {
+		return http.StatusBadGateway, err.Error()
+	}
 	st, ok := status.FromError(err)
 	if !ok {
 		return http.StatusBadGateway, "the search server is unreachable"

@@ -162,6 +162,21 @@ type overviewJSON struct {
 	AboutURL string        `json:"about_url,omitempty"`
 }
 
+// shapeCorpus describes what is stored, or returns nil when nothing is.
+func shapeCorpus(st *stratav1.StatsResponse, name string) *corpusJSON {
+	if st.Entries == 0 {
+		return nil
+	}
+	first, last := time.Unix(0, st.MinUnixNano).UTC(), time.Unix(0, st.MaxUnixNano).UTC()
+	return &corpusJSON{
+		Name: name, Segments: int64(st.Segments), Entries: int64(st.Entries), StoredBytes: int64(st.StoredBytes),
+		First:    first.Format("2006-01-02 15:04"),
+		Last:     last.Format("2006-01-02 15:04"),
+		MinInput: first.Truncate(time.Minute).Format(datetimeForm),
+		MaxInput: last.Truncate(time.Minute).Add(time.Minute).Format(datetimeForm),
+	}
+}
+
 // overview gives the page what it needs to introduce itself: what is stored,
 // what to try, and where to read more.
 func (h *uiHandler) overview(w http.ResponseWriter, r *http.Request) {
@@ -176,16 +191,7 @@ func (h *uiHandler) overview(w http.ResponseWriter, r *http.Request) {
 		out.Examples = append(out.Examples, exampleJSON{Title: e.Title, Note: e.Note, Text: e.Text, Tags: e.Tags,
 			From: e.From, To: e.To, LastSeconds: e.lastSeconds(), Limit: e.Limit})
 	}
-	if st.Entries > 0 {
-		first, last := time.Unix(0, st.MinUnixNano).UTC(), time.Unix(0, st.MaxUnixNano).UTC()
-		out.Corpus = &corpusJSON{
-			Name: h.opts.CorpusName, Segments: int64(st.Segments), Entries: int64(st.Entries), StoredBytes: int64(st.StoredBytes),
-			First:    first.Format("2006-01-02 15:04"),
-			Last:     last.Format("2006-01-02 15:04"),
-			MinInput: first.Truncate(time.Minute).Format(datetimeForm),
-			MaxInput: last.Truncate(time.Minute).Add(time.Minute).Format(datetimeForm),
-		}
-	}
+	out.Corpus = shapeCorpus(st, h.opts.CorpusName)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	json.NewEncoder(w).Encode(out)

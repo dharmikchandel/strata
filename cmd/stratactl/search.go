@@ -49,6 +49,7 @@ func runSearch(args []string) error {
 	from := fs.String("from", "", "start of the time range (inclusive): RFC 3339 or Unix ns")
 	to := fs.String("to", "", "end of the time range (exclusive): RFC 3339 or Unix ns")
 	limit := fs.Uint("limit", 20, "maximum number of lines to return")
+	newest := fs.Bool("newest", false, "show the latest matching lines, newest first, instead of the earliest")
 	asJSON := fs.Bool("json", false, "print the raw response as JSON")
 	tags := tagFlags{}
 	fs.Var(tags, "tag", "exact-match tag filter key=value (repeatable)")
@@ -73,7 +74,7 @@ func runSearch(args []string) error {
 	defer cancel()
 	start := time.Now()
 	resp, err := stratav1.NewQueryServiceClient(conn).Search(ctx, &stratav1.SearchRequest{
-		Text: *text, Tags: tags, FromUnixNano: fromNs, ToUnixNano: toNs, Limit: uint32(*limit),
+		Text: *text, Tags: tags, FromUnixNano: fromNs, ToUnixNano: toNs, Limit: uint32(*limit), NewestFirst: *newest,
 	})
 	if err != nil {
 		return err
@@ -93,7 +94,11 @@ func runSearch(args []string) error {
 		fmt.Println()
 	}
 	if resp.Truncated {
-		fmt.Printf("... more lines match; showing the earliest %d (raise -limit)\n", len(resp.Hits))
+		which := "earliest"
+		if *newest {
+			which = "latest"
+		}
+		fmt.Printf("... more lines match; showing the %s %d (raise -limit)\n", which, len(resp.Hits))
 	}
 	if len(resp.Hits) == 0 {
 		fmt.Println("(no matches)")

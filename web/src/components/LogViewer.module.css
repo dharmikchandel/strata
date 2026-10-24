@@ -56,6 +56,15 @@
 .tags { display: flex; flex-wrap: nowrap; justify-content: flex-end; gap: 0.3rem; min-width: 0; }
 
 .row[data-open] { background: var(--bg-raised); border-bottom-color: transparent; }
+/* A line is a control (a click opens it), so it shows the hand, not the text
+   cursor; the opened line's details below keep the text cursor for copying. */
+.row { cursor: pointer; }
+.head .row, .table[data-skeleton] .row { cursor: default; }
+/* A line that just arrived in a live view starts on a faint wash that fades,
+   so the eye can tell new rows from the ones already read. */
+@keyframes arrived { from { background-color: color-mix(in srgb, var(--fg) 9%, transparent); } }
+.row[data-fresh] { animation: arrived 1.6s var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .row[data-fresh] { animation: none; } }
 
 /* The opened line: the whole message wrapped, then where it came from. */
 .detail { display: block; padding: 0 var(--space-4) var(--space-4) calc(var(--space-2) + 2rem); background: var(--bg-raised); border-bottom: 1px solid var(--line); }

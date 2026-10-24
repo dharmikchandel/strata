@@ -90,7 +90,10 @@ type SearchRequest struct {
 	ToUnixNano   int64 `protobuf:"varint,4,opt,name=to_unix_nano,json=toUnixNano,proto3" json:"to_unix_nano,omitempty"`
 	// Maximum number of hits. Zero means the server default; values above the
 	// server's maximum are rejected.
-	Limit         uint32 `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	Limit uint32 `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	// Return the latest matching lines, newest first, instead of the earliest
+	// in timestamp order. The histogram and metrics are the same either way.
+	NewestFirst   bool `protobuf:"varint,6,opt,name=newest_first,json=newestFirst,proto3" json:"newest_first,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +161,13 @@ func (x *SearchRequest) GetLimit() uint32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *SearchRequest) GetNewestFirst() bool {
+	if x != nil {
+		return x.NewestFirst
+	}
+	return false
 }
 
 type SearchHit struct {
@@ -706,14 +716,15 @@ var File_strata_v1_query_proto protoreflect.FileDescriptor
 
 const file_strata_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"\x15strata/v1/query.proto\x12\tstrata.v1\"\xf2\x01\n" +
+	"\x15strata/v1/query.proto\x12\tstrata.v1\"\x95\x02\n" +
 	"\rSearchRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x126\n" +
 	"\x04tags\x18\x02 \x03(\v2\".strata.v1.SearchRequest.TagsEntryR\x04tags\x12$\n" +
 	"\x0efrom_unix_nano\x18\x03 \x01(\x03R\ffromUnixNano\x12 \n" +
 	"\fto_unix_nano\x18\x04 \x01(\x03R\n" +
 	"toUnixNano\x12\x14\n" +
-	"\x05limit\x18\x05 \x01(\rR\x05limit\x1a7\n" +
+	"\x05limit\x18\x05 \x01(\rR\x05limit\x12!\n" +
+	"\fnewest_first\x18\x06 \x01(\bR\vnewestFirst\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe1\x01\n" +

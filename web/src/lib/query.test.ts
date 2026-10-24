@@ -25,6 +25,8 @@ describe('toApiParams', () => {
     expect(p.get('from')).toBe('2005-06-20T13:00');
     expect(p.has('to')).toBe(false);
     expect(p.get('limit')).toBe('20');
+    expect(p.get('order')).toBe('newest');
+    expect(toApiParams(q({ order: 'oldest' }), corpus).get('order')).toBe('oldest');
   });
 
   it('counts "last" back from the newest stored line, not the clock', () => {
@@ -42,6 +44,7 @@ describe('URL form', () => {
       q({ q: 'error', range: { kind: 'last', seconds: 3600 }, limit: 20 }),
       q({ range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' } }),
       q({ range: { kind: 'between', from: '', to: '2005-06-20 14:00' }, limit: 1024 }),
+      q({ q: 'error', order: 'oldest' }),
     ]) {
       expect(fromURL(new URLSearchParams(toURL(query).toString()))).toEqual(query);
     }
@@ -50,15 +53,15 @@ describe('URL form', () => {
   });
 
   it('falls back to defaults for anything malformed', () => {
-    expect(fromURL(new URLSearchParams('last=forever&limit=5000'))).toEqual(emptyQuery);
+    expect(fromURL(new URLSearchParams('last=forever&limit=5000&order=sideways'))).toEqual(emptyQuery);
     expect(fromURL(new URLSearchParams('limit=1.5')).limit).toBe(64);
   });
 });
 
 describe('queryFromExample', () => {
   it('puts words and tags in the box and keeps "last" relative', () => {
-    expect(queryFromExample({ title: '', note: '', text: '', tags: { level: 'FATAL' }, from: '', to: '', last_seconds: 3600, limit: 20 })).toEqual({ q: 'level=FATAL', range: { kind: 'last', seconds: 3600 }, limit: 20 });
-    expect(queryFromExample({ title: '', note: '', text: 'error', tags: null, from: '2005-06-20T13:00', to: '2005-06-20T14:00', limit: 0 })).toEqual({ q: 'error', range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' }, limit: 64 });
+    expect(queryFromExample({ title: '', note: '', text: '', tags: { level: 'FATAL' }, from: '', to: '', last_seconds: 3600, limit: 20 })).toEqual({ q: 'level=FATAL', range: { kind: 'last', seconds: 3600 }, limit: 20, order: 'newest' });
+    expect(queryFromExample({ title: '', note: '', text: 'error', tags: null, from: '2005-06-20T13:00', to: '2005-06-20T14:00', limit: 0 })).toEqual({ q: 'error', range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' }, limit: 64, order: 'newest' });
   });
 
   it('labels ranges briefly', () => {
@@ -118,6 +121,7 @@ describe('explain', () => {
     expect(explain(new SearchError(429, 'the server is busy; try again in a moment'))).toMatchObject({ retry: true });
     expect(explain(new SearchError(502, 'some stored data could not be read'))).toMatchObject({ retry: false, message: expect.stringContaining('incomplete') });
     expect(explain(new SearchError(504, 'the search took too long')).message).toContain('narrow the time range');
+    expect(explain(new SearchError(502, "the Strata server is older than this page and can't put the newest lines first"))).toMatchObject({ retry: false, message: expect.stringContaining('Oldest first') });
     expect(explain(new SearchError(0, 'unreachable'))).toMatchObject({ retry: true });
     expect(explain(new SearchError(400, 'something new')).message).toBe('The server refused this search: something new');
   });

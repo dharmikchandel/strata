@@ -29,8 +29,9 @@ const (
 //
 // QueryService searches stored logs.
 type QueryServiceClient interface {
-	// Search returns the earliest matching lines in timestamp order, plus
-	// metrics describing how much work the search did.
+	// Search returns the earliest matching lines in timestamp order (or the
+	// latest, newest first, with newest_first), plus metrics describing how much
+	// work the search did.
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// Stats describes what is stored: how many lines, in how many segments, over
 	// what time range. It reads only the manifest, never object storage.
@@ -71,8 +72,9 @@ func (c *queryServiceClient) Stats(ctx context.Context, in *StatsRequest, opts .
 //
 // QueryService searches stored logs.
 type QueryServiceServer interface {
-	// Search returns the earliest matching lines in timestamp order, plus
-	// metrics describing how much work the search did.
+	// Search returns the earliest matching lines in timestamp order (or the
+	// latest, newest first, with newest_first), plus metrics describing how much
+	// work the search did.
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// Stats describes what is stored: how many lines, in how many segments, over
 	// what time range. It reads only the manifest, never object storage.

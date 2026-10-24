@@ -16,6 +16,9 @@ export function explain(err: SearchError): Explained {
     case 429:
       return { message: 'The server is busy with other searches. Try again in a moment.', retry: true };
     case 502:
+      if (raw.includes('older than this page')) {
+        return { message: "The Strata server is older than this page and can't put the newest lines first. Update it, or choose Oldest first.", retry: false };
+      }
       return raw.includes('could not be read')
         ? { message: "Some stored data couldn't be read, so the answer would be incomplete. Nothing is shown rather than a partial result.", retry: false }
         : { message: "Couldn't reach the Strata server. Check that it is running, then try again.", retry: true };

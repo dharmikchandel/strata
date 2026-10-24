@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchOverview, search, SearchError, type Overview, type SearchResult } from './lib/api';
 import { explain, type Explained } from './lib/errors';
+import { afterNanos, liveOn, openLive, ratePerSecond, type Live } from './lib/live';
+import { lineKeys } from './components/LogViewer';
 import { emptyQuery, parse, parseTime, queryFromExample, rangeBounds, toApiParams, validate, type Query, type Range } from './lib/query';
 import { terms as termsOf } from './lib/tokenize';
 import { TopBar } from './components/TopBar';
@@ -26,6 +28,8 @@ export function App() {
   const [error, setError] = useState<Explained | null>(null);
   const [invalid, setInvalid] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState<Live | null>(null);
+  const [rate, setRate] = useState<number | null>(null); // lines stored per second, while live
 
   const inFlight = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,10 +40,14 @@ export function App() {
   overviewRef.current = overview;
   const queryRef = useRef(query);
   queryRef.current = query;
+  const closeLive = useRef<(() => void) | null>(null);
+  const liveRef = useRef(false);
+  liveRef.current = liveOn(live);
+  const samples = useRef<[number, number][]>([]); // (time ms, lines stored), the last 30 s
 
   // A newer search replaces an older one still in flight, so a slow answer can
   // never overwrite a fresh one.
-  const runSearch = useCallback(async (q: Query, reveal: boolean) => {
+  const runSearch = useCallback(async (q: Query, reveal: boolean): Promise<SearchResult | null> => {
     inFlight.current?.abort();
     const mine = new AbortController();
     inFlight.current = mine;
@@ -54,11 +62,13 @@ export function App() {
       setSegment(null);
       setShown(q);
       setSeq((n) => n + 1);
+      return r;
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
+      if ((err as Error).name === 'AbortError') return null;
       // The error sits by the query box; the last good result stays, dimmed,
       // so an error never leaves a hole where the page was.
       setError(explain(err instanceof SearchError ? err : new SearchError(0, '')));
+      return null;
     } finally {
       if (inFlight.current === mine) {
         inFlight.current = null;
@@ -67,9 +77,85 @@ export function App() {
     }
   }, []);
 
-  // Checks, then runs. Used by every control, so each one validates the same way.
+  const stopLive = useCallback(() => {
+    closeLive.current?.();
+    closeLive.current = null;
+    samples.current = [];
+    setRate(null);
+    setLive(null);
+  }, []);
+
+  // Live: first an ordinary search, newest first over all time, so the page
+  // shows the latest lines at once; then a stream (lib/live.ts) that starts
+  // right after the newest of them and puts each new line on top. The readout
+  // follows the stream's own searches, so the strip grows as segments seal.
+  const startLive = useCallback(
+    async (base: Query) => {
+      closeLive.current?.();
+      closeLive.current = null;
+      const q: Query = { ...base, range: { kind: 'all' }, order: 'newest' };
+      setQuery(q);
+      setActive(null);
+      const problem = validate(q, overviewRef.current?.corpus ?? null);
+      if (problem) {
+        setError({ message: problem.message, retry: false });
+        setInvalid(problem.field === 'q');
+        setLive(null);
+        return;
+      }
+      const r = await runSearch(q, false);
+      if (!r) {
+        setLive(null);
+        return;
+      }
+      const params = new URLSearchParams();
+      const { words, tags } = parse(q.q);
+      if (words) params.set('text', words);
+      for (const [k, v] of tags) params.append('tag', `${k}=${v}`);
+      const after = r.hits[0] ? afterNanos(r.hits[0].time) : null;
+      if (after) params.set('after', after);
+      params.set('limit', String(q.limit)); // no event needs to carry more lines than are shown
+      samples.current = [];
+      setRate(null);
+      setLive({ since: new Date().toISOString().slice(11, 19), lines: r.hits, fresh: new Set(), added: 0, gap: false, state: 'connecting', note: null });
+      closeLive.current = openLive(params, {
+        onTick: (tick) => {
+          setResult(tick.result);
+          if (tick.corpus) {
+            const corpus = tick.corpus;
+            setOverview((prev) => (prev ? { ...prev, corpus } : prev));
+            const now = Date.now();
+            samples.current = [...samples.current.filter(([at]) => now - at <= 30_000), [now, corpus.entries]];
+            setRate(ratePerSecond(samples.current));
+          }
+          setLive((prev) => {
+            if (!prev) return prev;
+            const lines = [...tick.lines, ...prev.lines].slice(0, queryRef.current.limit);
+            const fresh = new Set(lineKeys(lines).slice(0, tick.lines.length));
+            return { ...prev, lines, fresh, added: prev.added + tick.lines.length, gap: prev.gap || tick.gap, note: null };
+          });
+        },
+        onState: (state) => setLive((prev) => prev && { ...prev, state }),
+        onProblem: (message, retry) =>
+          setLive((prev) => prev && { ...prev, state: retry ? prev.state : 'failed', note: retry ? `${message}; trying again.` : message }),
+        onEnd: (after) =>
+          setLive((prev) => prev && { ...prev, state: 'ended', note: `Live stopped after ${Math.round(after / 60)} minutes, so an open tab doesn't search forever. Turn it on again to carry on.` }),
+      });
+    },
+    [runSearch],
+  );
+  useEffect(() => () => closeLive.current?.(), []);
+
+  // Checks, then runs. Used by every control, so each one validates the same
+  // way. While live, a new search over all time restarts the live view with
+  // it; any other range ends the live view.
   const submit = useCallback(
     (q: Query, reveal = true) => {
+      if (liveRef.current && q.range.kind === 'all') {
+        startLive(q);
+        return;
+      }
+      stopLive();
       setQuery(q);
       const problem = validate(q, overviewRef.current?.corpus ?? null);
       if (problem) {
@@ -80,19 +166,20 @@ export function App() {
       setActive(null); // a hand-made search is no longer "the example"
       runSearch(q, reveal);
     },
-    [runSearch],
+    [runSearch, startLive, stopLive],
   );
 
   const runExample = useCallback(
     (i: number, ov: Overview | null, reveal: boolean) => {
       const ex = ov?.examples?.[i];
       if (!ex) return;
+      stopLive();
       const q = queryFromExample(ex);
       setQuery(q);
       setActive(i);
       runSearch(q, reveal);
     },
-    [runSearch],
+    [runSearch, stopLive],
   );
 
   // First view: what is stored, what to try, and a real search already run,
@@ -185,7 +272,19 @@ export function App() {
     <>
       <TopBar page="search" sourceUrl={overview?.about_url} wide />
       <main className={s.main}>
-        <ContextRow name={corpus?.name || 'Stored logs'} corpus={corpus} />
+        <ContextRow
+          name={corpus?.name || 'Stored logs'}
+          corpus={corpus}
+          live={liveOn(live)}
+          rate={rate}
+          onLive={() => {
+            if (!liveOn(live)) return startLive(query);
+            // Off: back to an ordinary search for the same words.
+            stopLive();
+            liveRef.current = false;
+            submit(query, false);
+          }}
+        />
 
         <QueryBar
           ref={inputRef}
@@ -219,7 +318,16 @@ export function App() {
         {loaded && overview && !corpus && <FirstRun />}
 
         <div ref={readoutRef} className={s.anchor}>
-          {result && <Readout result={result} stale={busy} stored={corpus?.stored_bytes ?? null} picked={segment} onPick={setSegment} />}
+          {result && (
+            <Readout
+              result={result}
+              stale={busy}
+              live={!!live}
+              stored={corpus?.stored_bytes ?? null}
+              picked={segment}
+              onPick={live ? undefined : setSegment}
+            />
+          )}
         </div>
 
         {(result || firstSearch) && (
@@ -228,12 +336,15 @@ export function App() {
             result={result}
             stale={busy && !!result}
             limit={query.limit}
+            order={shown?.order ?? query.order}
             terms={marks.terms}
             tags={marks.tags}
             extent={extent}
             segment={segment}
             onSegment={setSegment}
             onLimit={(limit) => submit({ ...query, limit }, false)}
+            onOrder={(order) => submit({ ...query, order }, false)}
+            live={live}
             onTag={onTag}
           />
         )}

@@ -6,8 +6,9 @@ option go_package = "github.com/dharmikchandel/strata/gen/strata/v1;stratav1";
 
 // QueryService searches stored logs.
 service QueryService {
-  // Search returns the earliest matching lines in timestamp order, plus
-  // metrics describing how much work the search did.
+  // Search returns the earliest matching lines in timestamp order (or the
+  // latest, newest first, with newest_first), plus metrics describing how much
+  // work the search did.
   rpc Search(SearchRequest) returns (SearchResponse);
 
   // Stats describes what is stored: how many lines, in how many segments, over
@@ -29,6 +30,9 @@ message SearchRequest {
   // Maximum number of hits. Zero means the server default; values above the
   // server's maximum are rejected.
   uint32 limit = 5;
+  // Return the latest matching lines, newest first, instead of the earliest
+  // in timestamp order. The histogram and metrics are the same either way.
+  bool newest_first = 6;
 }
 
 message SearchHit {

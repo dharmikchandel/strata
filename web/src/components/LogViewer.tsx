@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import type { Hit } from '../lib/api';
 import { highlight } from '../lib/tokenize';
 import { CheckIcon, ChevronIcon, CopyIcon, PlusIcon } from './icons';
@@ -10,6 +10,20 @@ interface Props {
   terms: Set<string>; // the search's terms, to mark in each line
   tags: Set<string>; // "key=value" tags already in the search
   onTag: (key: string, value: string) => void; // add the tag to the search, or take it out
+  fresh?: Set<string>; // keys of lines that just arrived in a live view
+}
+
+// A line's identity is its content, not its place: in a live view new lines
+// arrive at the top, and an opened line must stay the one that was opened.
+// Identical lines (a resent batch) are told apart by how many came before.
+export function lineKeys(hits: Hit[]): string[] {
+  const seen = new Map<string, number>();
+  return hits.map((h) => {
+    const k = `${h.time}|${h.message}|${JSON.stringify(h.tags ?? {})}`;
+    const n = seen.get(k) ?? 0;
+    seen.set(k, n + 1);
+    return n ? `${k}#${n}` : k;
+  });
 }
 
 const LEVEL_KEYS = ['level', 'severity', 'lvl'];
@@ -29,14 +43,15 @@ const severity = (v: string) => (ERROR_LEVELS.has(v.toUpperCase()) ? 'error' : W
 // them; what keeps 1,024 rows cheap is `content-visibility: auto` in the
 // stylesheet, which lets the browser skip laying out and painting rows that
 // are off screen. Log text is untrusted: React renders it as text.
-export function LogViewer({ hits, wrap, terms, tags, onTag }: Props) {
-  const [open, setOpen] = useState<Set<number>>(() => new Set());
+export function LogViewer({ hits, wrap, terms, tags, onTag, fresh }: Props) {
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
   const hasLevel = hits.some((h) => levelKey(h.tags));
+  const keys = useMemo(() => lineKeys(hits), [hits]);
   const toggle = useCallback(
-    (i: number) =>
+    (k: string) =>
       setOpen((prev) => {
         const next = new Set(prev);
-        if (!next.delete(i)) next.add(i);
+        if (!next.delete(k)) next.add(k);
         return next;
       }),
     [],
@@ -54,7 +69,20 @@ export function LogViewer({ hits, wrap, terms, tags, onTag }: Props) {
       </div>
       <div role="rowgroup">
         {hits.map((h, i) => (
-          <Line key={i} i={i} hit={h} wrap={wrap} hasLevel={hasLevel} open={open.has(i)} terms={terms} tags={tags} onToggle={toggle} onTag={onTag} />
+          <Line
+            key={keys[i]}
+            k={keys[i]}
+            i={i}
+            hit={h}
+            wrap={wrap}
+            hasLevel={hasLevel}
+            open={open.has(keys[i])}
+            fresh={fresh?.has(keys[i]) ?? false}
+            terms={terms}
+            tags={tags}
+            onToggle={toggle}
+            onTag={onTag}
+          />
         ))}
       </div>
     </div>
@@ -62,19 +90,21 @@ export function LogViewer({ hits, wrap, terms, tags, onTag }: Props) {
 }
 
 interface LineProps {
+  k: string;
   i: number;
   hit: Hit;
   wrap: boolean;
   hasLevel: boolean;
   open: boolean;
+  fresh: boolean;
   terms: Set<string>;
   tags: Set<string>;
-  onToggle: (i: number) => void;
+  onToggle: (k: string) => void;
   onTag: (key: string, value: string) => void;
 }
 
 // memo: opening one row re-renders that row, not all thousand.
-const Line = memo(function Line({ i, hit, wrap, hasLevel, open, terms, tags, onToggle, onTag }: LineProps) {
+const Line = memo(function Line({ k, i, hit, wrap, hasLevel, open, fresh, terms, tags, onToggle, onTag }: LineProps) {
   const lk = levelKey(hit.tags);
   const level = lk ? hit.tags![lk] : '';
   const others = Object.entries(hit.tags ?? {}).filter(([k]) => k !== lk);
@@ -112,12 +142,13 @@ const Line = memo(function Line({ i, hit, wrap, hasLevel, open, terms, tags, onT
         role="row"
         className={s.row}
         data-open={open || undefined}
+        data-fresh={fresh || undefined}
         onClick={(e) => {
           // A click on a control is that control's; a drag that selected text
           // is someone copying, not asking to open the line.
           if ((e.target as HTMLElement).closest('button')) return;
           if (window.getSelection()?.toString()) return;
-          onToggle(i);
+          onToggle(k);
         }}
       >
         <span role="cell" className={s.ts}>

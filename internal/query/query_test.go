@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -386,6 +387,42 @@ func TestAgreesWithBruteForce(t *testing.T) {
 		sort.Strings(w)
 		if !reflect.DeepEqual(g, w) {
 			t.Fatalf("query %+v: results differ from brute force", q)
+		}
+
+		// With a limit, the earliest or the latest lines, in either order.
+		// Lines with equal timestamps at the cut may be any of them, so the
+		// timestamps are compared exactly and the lines must all be real.
+		if len(want) == 0 {
+			continue
+		}
+		q.Limit = 1 + rng.Intn(len(want)+5)
+		q.NewestFirst = rng.Intn(2) == 0
+		cut := e.search(q)
+		ts := make([]int64, len(want))
+		for k, en := range want {
+			ts[k] = en.Timestamp
+		}
+		sort.Slice(ts, func(a, b int) bool { return ts[a] < ts[b] })
+		n := min(q.Limit, len(ts))
+		wantTS := ts[:n]
+		if q.NewestFirst {
+			wantTS = slices.Clone(ts[len(ts)-n:])
+			slices.Reverse(wantTS)
+		}
+		if len(cut.Hits) != n || cut.Truncated != (len(want) > q.Limit) {
+			t.Fatalf("query %+v: got %d hits (truncated %v), want %d of %d", q, len(cut.Hits), cut.Truncated, n, len(want))
+		}
+		real := map[string]bool{}
+		for _, k := range w {
+			real[k] = true
+		}
+		for k, h := range cut.Hits {
+			if h.Timestamp != wantTS[k] || !real[key(h.Timestamp, h.Message, h.Tags)] {
+				t.Fatalf("query %+v: hit %d is %d %q, want timestamp %d", q, k, h.Timestamp, h.Message, wantTS[k])
+			}
+		}
+		if total := cut.Histogram.Total(); total != int64(len(want)) {
+			t.Fatalf("query %+v: histogram counts %d with a limit, want %d", q, total, len(want))
 		}
 	}
 }

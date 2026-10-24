@@ -121,19 +121,37 @@ func TestUISearchPassesParametersAndShapesTheResponse(t *testing.T) {
 func TestUIDefaultsAndValidation(t *testing.T) {
 	stub := &stubSearcher{resp: &stratav1.SearchResponse{}}
 	h, _ := newUIHandler(stub, uiOptions{})
-	if rec := get(t, h, "/api/search?text=x"); rec.Code != 200 || stub.req.Limit != 100 {
-		t.Fatalf("defaults: status %d limit %d", rec.Code, stub.req.Limit)
+	if rec := get(t, h, "/api/search?text=x"); rec.Code != 200 || stub.req.Limit != 100 || stub.req.NewestFirst {
+		t.Fatalf("defaults: status %d limit %d newest %v", rec.Code, stub.req.Limit, stub.req.NewestFirst)
+	}
+	for order, newest := range map[string]bool{"newest": true, "oldest": false} {
+		if rec := get(t, h, "/api/search?text=x&order="+order); rec.Code != 200 || stub.req.NewestFirst != newest {
+			t.Fatalf("order=%s: status %d newest %v", order, rec.Code, stub.req.NewestFirst)
+		}
 	}
 	for _, bad := range []string{
 		"/api/search?limit=0", "/api/search?limit=1025", "/api/search?limit=abc",
 		"/api/search?tag=novalue", "/api/search?tag=%3Dx",
-		"/api/search?from=yesterday", "/api/search?to=2005-13-45",
+		"/api/search?from=yesterday", "/api/search?to=2005-13-45", "/api/search?order=random",
 	} {
 		stub.req = nil
 		rec := get(t, h, bad)
 		if rec.Code != http.StatusBadRequest || stub.req != nil {
 			t.Errorf("%s: want 400 without calling the server, got %d", bad, rec.Code)
 		}
+	}
+}
+
+// A Strata server older than the page ignores newest_first and returns the
+// earliest lines; the page must not show them as the newest.
+func TestUIRefusesAnOldServerThatCantSortNewestFirst(t *testing.T) {
+	stub := &stubSearcher{resp: &stratav1.SearchResponse{Hits: []*stratav1.SearchHit{{TimestampUnixNano: 1}, {TimestampUnixNano: 2}}}}
+	h, _ := newUIHandler(stub, uiOptions{})
+	if rec := get(t, h, "/api/search?order=newest"); rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "older than this page") {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	if rec := get(t, h, "/api/search?order=oldest"); rec.Code != 200 {
+		t.Fatalf("oldest first: status %d", rec.Code)
 	}
 }
 

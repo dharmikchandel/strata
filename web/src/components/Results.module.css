@@ -11,7 +11,7 @@
 .count .mono { font-weight: 600; }
 .shown { font-weight: 400; color: var(--fg-muted); }
 
-.controls { display: flex; align-items: center; gap: var(--space-4); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
 /* A switch drawn as a small track, neutral like every control. */
 .wrap {
   display: inline-flex; align-items: center; gap: 0.5rem; height: 2rem; padding: 0; border: 0; background: transparent;
@@ -28,6 +28,14 @@
 .wrap[aria-pressed='true'] { color: var(--fg); }
 .wrap[aria-pressed='true'] .track { background: var(--invert-bg); border-color: var(--invert-bg); }
 .wrap[aria-pressed='true'] .track::after { transform: translateX(0.75rem); background: var(--invert-fg); }
+/* Two halves of one control: the pressed one inverts, like the time presets. */
+.order { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.order button {
+  height: calc(2rem - 6px); padding: 0 0.6rem; border: 0; border-radius: calc(var(--radius) - 2px); background: transparent;
+  color: var(--fg-muted); font-size: var(--text-sm); font-weight: 500;
+  transition: color var(--dur-fast), background-color var(--dur-fast);
+}
+.order button[aria-pressed='true'] { color: var(--invert-fg); background: var(--invert-bg); }
 .limit { display: inline-flex; align-items: center; gap: 0.5rem; font-size: var(--text-sm); color: var(--fg-muted); }
 .limit select {
   height: 2rem; padding: 0 0.5rem; border: 1px solid var(--line); border-radius: var(--radius);
@@ -46,9 +54,15 @@
   height: 2rem; padding: 0 0.8rem; border: 1px solid var(--line-strong); border-radius: var(--radius);
   background: transparent; color: var(--fg); font-size: var(--text-sm); font-weight: 600;
 }
+/* Live: a filled dot while lines are arriving, a ring once stopped (neutral,
+   like the switch). The note says what live can and can't show. */
+.liveMark { display: inline-block; width: 8px; height: 8px; margin: 0 0.5rem 0.1rem 0; border-radius: 50%; border: 1.5px solid var(--fg-faint); vertical-align: middle; }
+.liveMark[data-on] { background: var(--fg); border-color: var(--fg); }
+.liveNote { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); font-size: var(--text-xs); color: var(--fg-muted); max-width: 110ch; }
+.liveStatus { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); background: var(--bg-raised); font-size: var(--text-sm); color: var(--fg); }
 .none { padding: var(--space-5) var(--space-4); font-size: var(--text-sm); color: var(--fg-muted); max-width: 80ch; }
 .none b { color: var(--fg); font-weight: 600; }
 
-@media (hover: hover) { .limit select:hover { border-color: var(--line-strong); } .wrap:hover { color: var(--fg); } .clear:hover { background: var(--bg-hover); } }
-@media (max-width: 40rem) { .head, .filter { padding: var(--space-3); } }
-@media (pointer: coarse) { .limit select { height: 2.75rem; font-size: var(--text-md); } .wrap { min-height: 2.75rem; } .clear { height: 2.75rem; } }
+@media (hover: hover) { .limit select:hover { border-color: var(--line-strong); } .wrap:hover { color: var(--fg); } .clear:hover { background: var(--bg-hover); } .order button:hover:not([aria-pressed='true']) { color: var(--fg); } }
+@media (max-width: 40rem) { .head, .filter, .liveNote, .liveStatus { padding: var(--space-3); } }
+@media (pointer: coarse) { .limit select { height: 2.75rem; font-size: var(--text-md); } .wrap { min-height: 2.75rem; } .clear { height: 2.75rem; } .order button { height: 2.75rem; } }

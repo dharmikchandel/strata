@@ -19,9 +19,10 @@ const GLOSSARY: [string, string, string, string][] = [
 interface Props {
   result: SearchResult;
   stale: boolean;
+  live: boolean; // results keep coming: no replay per result, and no picking
   stored: number | null; // the overview's stored bytes, used when segments aren't listed
   picked: string | null; // the read segment whose lines are shown
-  onPick: (id: string | null) => void;
+  onPick?: (id: string | null) => void;
 }
 
 let plays = 0; // numbers each result, so the legend's counts arrive again
@@ -29,9 +30,11 @@ let plays = 0; // numbers each result, so the legend's counts arrive again
 // What one search did: a sentence, what share of the stored data it never
 // downloaded, then the segments themselves, then the detail for anyone who
 // wants it.
-export function Readout({ result, stale, stored, picked, onPick }: Props) {
+export function Readout({ result, stale, live, stored, picked, onPick }: Props) {
   const [hot, setHot] = useState<string | null>(null); // pointed at in the strip or the list
-  const play = useMemo(() => ++plays, [result]);
+  // Live, a result arrives every few seconds: the legend keeps its place
+  // instead of replaying each time.
+  const play = useMemo(() => (live ? 0 : ++plays), [result, live]);
   const segs = result.segments ?? [];
   const { ends } = useMemo(() => plan(segs.map((g) => g.kind)), [segs]);
   const m = result.metrics;
@@ -89,14 +92,16 @@ export function Readout({ result, stale, stored, picked, onPick }: Props) {
               </>
             ) : (
               <>
-                <b className="mono">{share}</b> of the <span className="mono">{formatBytes(whole)}</span> stored was never downloaded.
+                {live && 'The live view searches every 2 s for new lines; the latest search never downloaded '}
+                <b className="mono">{share}</b> of the <span className="mono">{formatBytes(whole)}</span> stored
+                {live ? '.' : ' was never downloaded.'}
               </>
             )}
           </p>
         )}
       </div>
 
-      <Strip result={result} metrics={m} hot={hot} picked={picked} onHot={setHot} onPick={onPick} />
+      <Strip result={result} metrics={m} live={live} hot={hot} picked={picked} onHot={setHot} onPick={onPick} />
 
       <div className={s.keyRow}>
         {/* Each count arrives when the strip has played its stage. */}
@@ -119,7 +124,7 @@ export function Readout({ result, stale, stored, picked, onPick }: Props) {
       </div>
 
       <div className={s.more}>
-        <ReadList segments={segs} hot={hot} onHot={setHot} picked={picked} onPick={onPick} />
+        <ReadList segments={segs} hot={hot} onHot={setHot} picked={picked} onPick={onPick} live={live} />
         <details className={s.explain}>
           <summary>
             <ChevronIcon className={s.chev} />

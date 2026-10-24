@@ -18,6 +18,7 @@ const WHY: Record<SegmentKind, string> = {
 interface Props {
   result: SearchResult;
   metrics: Metrics;
+  live?: boolean; // a new result every few seconds: bars stay, new ones enter
   hot?: string | null; // a segment pointed at elsewhere (the read list)
   picked?: string | null; // the read segment whose lines are shown
   onHot?: (id: string | null) => void;
@@ -33,24 +34,31 @@ let plays = 0; // numbers each result, so a new one remounts the bars and plays 
 // up. Pointing at a bar (or arrowing to it) says what happened to it; clicking
 // a read one shows only its lines. If the server judged there were too many
 // to list, the three totals are drawn as proportional blocks instead.
-export function Strip({ result, metrics, hot = null, picked = null, onHot, onPick }: Props) {
+export function Strip({ result, metrics, live = false, hot = null, picked = null, onHot, onPick }: Props) {
   const segs = result.segments ?? [];
   const total = metrics.segments_considered;
   const ref = useRef<HTMLDivElement>(null);
   const tip = useRef<HTMLSpanElement>(null);
   const [dense, setDense] = useState(false);
-  const [active, setActive] = useState<number | null>(null);
+  // The bar pointed at, by segment id: in a live view the bars shift as
+  // segments are sealed and merged, and the tooltip must stay on its segment.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const found = activeId === null ? -1 : segs.findIndex((g) => g.id === activeId);
+  const active = found < 0 ? null : found;
   const [tipX, setTipX] = useState(0);
-  const play = useMemo(() => ++plays, [result]);
-  const { delays } = useMemo(() => plan(segs.map((g) => g.kind)), [segs]);
+  // Each result plays once in stages. Live, the bars stay mounted (keyed by
+  // segment), so only a newly sealed segment's bar enters, and a segment whose
+  // outcome changed plays its own settle or rise.
+  const play = useMemo(() => (live ? 0 : ++plays), [result, live]);
+  const { delays } = useMemo(() => (live ? { delays: segs.map(() => 0) } : plan(segs.map((g) => g.kind))), [segs, live]);
 
   // Bars are at least 1px wide with a 2px gap; when that doesn't fit (hundreds
   // of segments, or a phone), drop the gaps so nothing overflows.
   useLayoutEffect(() => {
     const el = ref.current;
     if (el) setDense(segs.length * 3 > el.clientWidth);
-    setActive(null);
-  }, [result, segs.length]);
+    if (!live) setActiveId(null);
+  }, [result, segs.length, live]);
 
   // Keep the tooltip over its bar but inside the strip's panel: measured,
   // since its width depends on the text.
@@ -67,8 +75,9 @@ export function Strip({ result, metrics, hot = null, picked = null, onHot, onPic
 
   // Pointing at a bar also lights its row in the read list.
   function point(i: number | null) {
-    setActive(i);
-    onHot?.(i === null ? null : segs[i].id);
+    const id = i === null ? null : segs[i].id;
+    setActiveId(id);
+    onHot?.(id);
   }
   function pick(g: SegmentOutcome) {
     if (onPick && g.kind === 'scanned') onPick(picked === g.id ? null : g.id);
@@ -107,6 +116,10 @@ export function Strip({ result, metrics, hot = null, picked = null, onHot, onPic
   }
 
   const anyRead = segs.some((g) => g.kind === 'scanned');
+  // The ends of the axis: dates, or within a single day (live data) the times.
+  const first = segs[0].first;
+  const last = segs[segs.length - 1].last;
+  const oneDay = first.slice(0, 10) === last.slice(0, 10);
   const g = active === null ? null : segs[active];
   return (
     <div className={s.box} style={{ '--n': segs.length } as React.CSSProperties}>
@@ -158,7 +171,9 @@ export function Strip({ result, metrics, hot = null, picked = null, onHot, onPic
               {g.first} – {g.first.slice(0, 10) === g.last.slice(0, 10) ? g.last.slice(11) : g.last} UTC
             </span>
             <span>
-              {g.kind === 'scanned'
+              {g.kind === 'scanned' && live
+                ? 'Read by the latest live search: it may hold new lines.'
+                : g.kind === 'scanned'
                 ? g.hits
                   ? `Supplied ${n(g.hits)} of the lines shown.`
                   : 'Supplied none of the lines shown.'
@@ -176,8 +191,8 @@ export function Strip({ result, metrics, hot = null, picked = null, onHot, onPic
         )}
       </div>
       <p className={`${s.axis} mono`}>
-        <span>{segs[0].first.slice(0, 10)}</span>
-        <span>{segs[segs.length - 1].last.slice(0, 10)}</span>
+        <span>{oneDay ? first : first.slice(0, 10)}</span>
+        <span>{oneDay ? last.slice(11) : last.slice(0, 10)}</span>
       </p>
     </div>
   );

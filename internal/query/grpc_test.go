@@ -70,6 +70,14 @@ func TestSearchRPCReturnsHitsAndMetrics(t *testing.T) {
 	if err != nil || len(resp.Hits) != 5 || !resp.Truncated {
 		t.Fatalf("%v %+v", err, resp)
 	}
+	// Newest first: the latest lines of the whole result, latest at the top.
+	resp, err = client.Search(ctx, &stratav1.SearchRequest{Text: "common", Limit: 3, NewestFirst: true})
+	if err != nil || len(resp.Hits) != 3 || !resp.Truncated {
+		t.Fatalf("%v %+v", err, resp)
+	}
+	if h := resp.Hits; h[0].SegmentId != rows[9].ID || h[0].TimestampUnixNano <= h[1].TimestampUnixNano || h[1].TimestampUnixNano <= h[2].TimestampUnixNano {
+		t.Fatalf("newest first: %+v", h)
+	}
 }
 
 func TestSearchRPCRejectsBadRequests(t *testing.T) {
