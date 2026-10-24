@@ -4,7 +4,7 @@ import { ArrowUpRightIcon } from './icons';
 import s from './TopBar.module.css';
 
 interface Props {
-  page: 'landing' | 'search' | 'system';
+  page: 'landing' | 'search' | 'system' | 'benchmarks' | 'design';
   sourceUrl?: string; // the project's home (the "about" link), when configured
   wide?: boolean; // span the window, like the app below it
 }
@@ -22,8 +22,8 @@ export function TopBar({ page, sourceUrl, wide }: Props) {
         <nav className={s.nav} aria-label="Main">
           <a href="/search/" aria-current={page === 'search' ? 'page' : undefined}>Search</a>
           <a href="/system/" aria-current={page === 'system' ? 'page' : undefined}>System</a>
-          <a href="/#how">How it works</a>
-          <a href="/#measured">Benchmarks</a>
+          <a href="/benchmarks/" aria-current={page === 'benchmarks' ? 'page' : undefined}>Benchmarks</a>
+          <a href="/design/" aria-current={page === 'design' ? 'page' : undefined}>Design</a>
           {sourceUrl && (
             <a href={sourceUrl} rel="noopener">
               Source <ArrowUpRightIcon />

@@ -1,0 +1,1 @@
+var e=new Intl.NumberFormat(`en-US`),t=t=>e.format(t),n=(e,n)=>`${t(e)} ${n}${e===1?``:`s`}`;function r(e){if(e<1024)return e+` B`;let t=[`KiB`,`MiB`,`GiB`,`TiB`],n=-1;do e/=1024,n++;while(e>=1024&&n<t.length-1);return e.toLocaleString(`en-US`,{minimumFractionDigits:1,maximumFractionDigits:1})+` `+t[n]}var i=e=>e.length>8?`…`+e.slice(-8):e;export{i,t as n,n as r,r as t};

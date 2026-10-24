@@ -2,8 +2,9 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// The pages: the landing page at / (index.html), the search app at /search/
-// (search/index.html) and the system view at /system/ (system/index.html).
+// The pages: the landing page at / (index.html), the search app at /search/,
+// the system view at /system/, and the reading pages /benchmarks/ and
+// /design/, each from <name>/index.html.
 //
 // The built pages are embedded in the stratactl binary (go:embed ui), so the build is
 // written straight into cmd/stratactl/ui and committed; `make web-check` fails
@@ -25,6 +26,8 @@ export default defineConfig({
         landing: resolve(__dirname, 'index.html'),
         search: resolve(__dirname, 'search/index.html'),
         system: resolve(__dirname, 'system/index.html'),
+        benchmarks: resolve(__dirname, 'benchmarks/index.html'),
+        design: resolve(__dirname, 'design/index.html'),
       },
     },
   },

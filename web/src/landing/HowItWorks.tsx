@@ -1,4 +1,5 @@
 import s from './Section.module.css';
+import d from '../components/Doc.module.css';
 import h from './HowItWorks.module.css';
 
 type Kind = 'open' | 'time' | 'bloom' | 'read';
@@ -70,6 +71,9 @@ export function HowItWorks() {
         Illustration. Hollow bars are still in play; grey were ruled out by time range, blue by bloom filter, and orange were read. The
         demo draws the real thing for every search.
       </p>
+      <a className={d.more} href="/design/">
+        The full design, and what happens when things fail
+      </a>
     </section>
   );
 }

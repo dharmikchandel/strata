@@ -1,0 +1,41 @@
+/* The life of a line: numbered, hairline-ruled steps (the landing's step rows). */
+.steps { margin: 0; padding: 0; list-style: none; }
+.step { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--space-4); padding: var(--space-6) 0; border-top: 1px solid var(--line); }
+.step:last-child { border-bottom: 1px solid var(--line); }
+.num { font-size: var(--text-sm); color: var(--fg-muted); padding-top: 0.35rem; }
+.stepTitle { margin-bottom: var(--space-3); font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.025em; }
+
+/* "Tested by": the test names, as links into the repository. */
+.tests { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.5rem; margin-top: var(--space-3); }
+.testsLabel { margin-right: 0.25rem; font-size: var(--text-xs); font-weight: 600; color: var(--fg-muted); }
+.test {
+  padding: 0.1rem 0.45rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-raised);
+  font-size: var(--text-2xs); color: var(--fg); text-decoration: none; overflow-wrap: anywhere;
+}
+a.test { text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+
+/* A segment file drawn as its four sections, proportioned to suggest their
+   sizes; neutral, like everything that isn't a search's read. */
+.layout { display: flex; gap: 2px; max-width: 52rem; margin-bottom: var(--space-4); }
+.part { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; padding: 0.55rem 0.65rem; border-radius: 3px; background: var(--bg-raised); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: var(--text-2xs); color: var(--fg-muted); }
+.part b { font-size: var(--text-xs); font-weight: 600; color: var(--fg); }
+.part[data-part='header'] { flex: 1.1 1 0; }
+.part[data-part='lines'] { flex: 3 1 0; }
+.part[data-part='index'] { flex: 1.8 1 0; }
+.part[data-part='bloom'] { flex: 1.3 1 0; }
+
+/* Failures: condition on the left, what happens on the right. */
+.failures { margin: 0; }
+.failure { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--space-2) var(--space-6); padding: var(--space-4) 0; border-top: 1px solid var(--line); }
+.failure:last-child { border-bottom: 1px solid var(--line); }
+.failure dt { font-size: var(--text-md); font-weight: 600; }
+.failure dd { margin: 0; font-size: var(--text-base); color: var(--fg-muted); max-width: 64ch; }
+.failure .tests { margin-top: var(--space-2); }
+
+@media (hover: hover) { a.test:hover { text-decoration-color: currentColor; border-color: var(--line-strong); } }
+@media (max-width: 52rem) {
+  .failure { grid-template-columns: 1fr; }
+  .layout { flex-direction: column; }
+}
+@media (max-width: 40rem) { .step { grid-template-columns: 2rem minmax(0, 1fr); gap: var(--space-3); } }
+@media (pointer: coarse) { a.test { display: inline-flex; align-items: center; min-height: 2.75rem; } }

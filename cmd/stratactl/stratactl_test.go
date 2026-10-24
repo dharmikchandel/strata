@@ -301,9 +301,12 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 
 func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
 	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
-	// Every page (the landing page at /, the app at /search/, the system view
-	// at /system/) and every file the built pages link to.
-	pages := map[string]string{"/": readFile(t, "ui/index.html"), "/search/": readFile(t, "ui/search/index.html"), "/system/": readFile(t, "ui/system/index.html")}
+	// Every page (the landing page at /, the search app, the system view, the
+	// benchmarks and design pages) and every file the built pages link to.
+	pages := map[string]string{"/": readFile(t, "ui/index.html")}
+	for _, p := range []string{"search", "system", "benchmarks", "design"} {
+		pages["/"+p+"/"] = readFile(t, "ui/"+p+"/index.html")
+	}
 	var paths []string
 	for url, page := range pages {
 		paths = append(paths, url)
@@ -370,7 +373,10 @@ func TestStylesAreScopedToTheirComponents(t *testing.T) {
 // Phone adaptation guards. These check the things that went wrong on phones and
 // that no desktop-width test would notice.
 func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
-	page := readFile(t, "ui/index.html") + readFile(t, "ui/search/index.html") + readFile(t, "ui/system/index.html")
+	page := readFile(t, "ui/index.html")
+	for _, p := range []string{"search", "system", "benchmarks", "design"} {
+		page += readFile(t, "ui/"+p+"/index.html")
+	}
 	tsx := webSources(t, ".tsx")
 	css := webSources(t, ".css")
 	all := func(m map[string]string) string {
@@ -518,4 +524,22 @@ func cssBlocks(css string) []cssRule {
 		}
 	}
 	return rules
+}
+
+// The design page names the test behind each claim (web/src/design/content.ts).
+// Every one must exist where it says, so a renamed or moved test can't leave
+// the page pointing at nothing.
+func TestDesignPageNamesRealTests(t *testing.T) {
+	content := readFile(t, "../../web/src/design/content.ts")
+	refs := regexp.MustCompile(`t\('(\w+)', '([\w./-]+_test\.go)'\)`).FindAllStringSubmatch(content, -1)
+	if len(refs) < 20 {
+		t.Fatalf("found only %d test references in content.ts", len(refs))
+	}
+	for _, r := range refs {
+		name, file := r[1], r[2]
+		src := readFile(t, "../../"+file)
+		if !regexp.MustCompile(`(?m)^func ` + name + `\(`).MatchString(src) {
+			t.Errorf("%s names %s in %s, which has no such function", "content.ts", name, file)
+		}
+	}
 }

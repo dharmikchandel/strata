@@ -79,6 +79,8 @@ go run ./cmd/stratactl ui \
 
 The system page (`/system/`) shows the machinery: every segment as a block as wide as its file, toned by how many merges its lines have been through, with new blocks appearing as the buffer seals them and merges replacing their inputs as they happen; how full the ingest buffer is and how fast lines arrive; and a log of what the server did (sealed, merged, cleaned up). The log is kept in the server's memory only, so it starts again when the server restarts.
 
+Two reading pages complete the set. `/benchmarks/` draws the results below from the files in `bench/results` when the page is built, so it can only show what the harness recorded; a unit test checks each sentence it states against those files. `/design/` lays out how the parts fit and what happens when things fail, naming the test behind each claim (a Go test checks that every named test exists).
+
 `stratactl search` prints the matching lines and then how much work the search did. This is a real search of the benchmark dataset (4.7 million lines in 73 segments); long lines are shortened here:
 
 ```
@@ -254,7 +256,7 @@ Stated plainly, because they matter:
 ```
 cmd/strata         the server binary
 cmd/stratactl      client: ingest, search, and the web page (`stratactl ui`)
-web                the web pages' source (React, TypeScript, Vite): landing page and search; built into cmd/stratactl/ui
+web                the web pages' source (React, TypeScript, Vite): landing, search, system, benchmarks, design; built into cmd/stratactl/ui
 cmd/strata-bench   the benchmark harness
 cmd/strata-gen     the generated-traffic sender and verifier
 internal/segment   the segment file format (header, lines, index, bloom filter)

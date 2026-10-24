@@ -1,0 +1,1 @@
+function e(e){if(!e)return null;let t=/^(https:\/\/github\.com\/[\w.-]+\/[\w.-]+?)(?:\.git)?\/?(?:#.*)?$/.exec(e);return t?t[1]:null}var t=(e,t)=>`${e}/blob/main/${t}`;export{e as n,t};

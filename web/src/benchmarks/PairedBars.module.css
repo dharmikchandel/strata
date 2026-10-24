@@ -1,0 +1,39 @@
+/* Rows of [label | bar | bar]. The two bar columns share the space equally,
+   and every bar in a column is drawn on that column's one scale. */
+.chart { margin: 0; --cols: minmax(12rem, 16rem) minmax(0, 1fr) minmax(0, 1fr); }
+.head {
+  display: grid; grid-template-columns: var(--cols); gap: var(--space-5);
+  padding-bottom: var(--space-2); border-bottom: 1px solid var(--line-strong);
+}
+.colTitle { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-sm); font-weight: 600; }
+.colTitle .mono { font-size: var(--text-2xs); font-weight: 400; color: var(--fg-muted); }
+
+.group { padding: var(--space-4) 0 var(--space-2); border-bottom: 1px solid var(--line); }
+.groupTitle { margin-bottom: var(--space-2); font-size: var(--text-base); font-weight: 600; }
+.groupTitle span { display: block; margin-top: 0.1rem; font-size: var(--text-xs); font-weight: 400; color: var(--fg-muted); }
+
+.row {
+  display: grid; grid-template-columns: var(--cols); align-items: center; gap: 0.15rem var(--space-5);
+  padding: 0.3rem 0.4rem; margin: 0 -0.4rem; border-radius: var(--radius-sm); outline-offset: 0;
+}
+.row[data-active] { background: var(--bg-raised); }
+.label { display: flex; flex-direction: column; font-size: var(--text-sm); color: var(--fg); }
+.label .mono { font-size: var(--text-2xs); color: var(--fg-muted); }
+.caption { display: none; }
+/* The bar area is the same width on every row (values sit in a fixed
+   column after it), so equal values are equal lengths. */
+.track { display: grid; grid-template-columns: minmax(0, 1fr) 4.75rem; align-items: center; gap: 0.5rem; height: 1.25rem; }
+.area { display: block; }
+.track i { display: block; height: 0.75rem; min-width: 2px; border-radius: 0 2px 2px 0; background: var(--fg-muted); }
+.track i[data-kind='read'] { background: var(--read); }
+.track b { flex: none; font-size: var(--text-xs); font-weight: 500; color: var(--fg); white-space: nowrap; }
+.detail { grid-column: 2 / -1; font-size: var(--text-2xs); color: var(--fg-muted); }
+
+/* Phones: each row stacks, the label over the two bars, each bar captioned. */
+@media (max-width: 40rem) {
+  .head { display: none; }
+  .row { grid-template-columns: 1fr; gap: 0.25rem; padding: 0.5rem 0.4rem; }
+  .cell { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: center; gap: var(--space-2); }
+  .caption { display: block; font-size: var(--text-2xs); color: var(--fg-muted); }
+  .detail { grid-column: 1; }
+}

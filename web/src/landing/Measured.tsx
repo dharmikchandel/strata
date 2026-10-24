@@ -1,11 +1,9 @@
-import { byName, featured, runs } from './bench';
+import { byName, cap, featured, ms, runs, segs } from '../lib/bench';
 import { n } from '../lib/format';
+import d from '../components/Doc.module.css';
 import s from './Section.module.css';
 import m from './Measured.module.css';
 
-const ms = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`);
-const segs = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 // Every figure below comes from bench/results (see bench.ts); nothing is typed in.
 export function Measured() {
@@ -81,6 +79,9 @@ export function Measured() {
           </div>
         </div>
       )}
+      <a className={d.more} href="/benchmarks/">
+        Every configuration, ingest and the limits of these numbers
+      </a>
     </section>
   );
 }
