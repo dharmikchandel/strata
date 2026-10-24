@@ -10,7 +10,6 @@
   max-width: var(--content-max); margin: 0 auto; height: 60px;
   padding: 0 var(--gutter-r) 0 var(--gutter);
 }
-.inner[data-wide] { max-width: none; }
 .brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--fg); flex: none; border-radius: var(--radius-sm); }
 .word { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.03em; }
 

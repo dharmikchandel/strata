@@ -6,15 +6,14 @@ import s from './TopBar.module.css';
 interface Props {
   page: 'landing' | 'search' | 'system' | 'benchmarks' | 'design';
   sourceUrl?: string; // the project's home (the "about" link), when configured
-  wide?: boolean; // span the window, like the app below it
 }
 
 // The bar shared by both pages: the mark (home), the sections of the story,
 // and on the landing page the way into the demo.
-export function TopBar({ page, sourceUrl, wide }: Props) {
+export function TopBar({ page, sourceUrl }: Props) {
   return (
     <header className={s.bar}>
-      <div className={s.inner} data-wide={wide || undefined}>
+      <div className={s.inner}>
         <a className={s.brand} href="/" aria-label="Strata home">
           <LogoMark size={22} />
           <span className={s.word}>Strata</span>

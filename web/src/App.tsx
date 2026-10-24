@@ -270,7 +270,7 @@ export function App() {
 
   return (
     <>
-      <TopBar page="search" sourceUrl={overview?.about_url} wide />
+      <TopBar page="search" sourceUrl={overview?.about_url} />
       <main className={s.main}>
         <ContextRow
           name={corpus?.name || 'Stored logs'}

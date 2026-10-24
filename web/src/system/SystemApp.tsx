@@ -72,7 +72,7 @@ export function SystemApp() {
 
   return (
     <>
-      <TopBar page="system" sourceUrl={overview?.about_url} wide />
+      <TopBar page="system" sourceUrl={overview?.about_url} />
       <main className={s.main}>
         <section className={s.context} aria-labelledby="system-title">
           <h1 id="system-title" className={s.name}>System</h1>

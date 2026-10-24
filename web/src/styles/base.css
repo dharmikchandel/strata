@@ -4,6 +4,9 @@ html {
   -webkit-text-size-adjust: 100%;
   accent-color: var(--fg);
   scrollbar-color: var(--line-strong) var(--bg);
+  /* Always keep room for the scrollbar, so the centred top bar (and the page)
+     sits in the same place on short pages, long pages, and pages still loading. */
+  scrollbar-gutter: stable;
 }
 
 body {
