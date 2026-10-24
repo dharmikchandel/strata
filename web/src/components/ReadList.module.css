@@ -1,9 +1,21 @@
 .table { width: calc(100% - 2 * var(--space-5)); margin: 0 var(--space-5) var(--space-4); border-collapse: collapse; font-size: var(--text-xs); }
 .table th { text-align: left; font-weight: 500; color: var(--fg-muted); padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--line); }
-.table td { padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table td { padding: 0.3rem 1rem 0.3rem 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .table tr:last-child td { border-bottom: 0; }
+/* The row whose bar is pointed at in the strip, and the other way round. */
+.table tr[data-hot] td { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .id { color: var(--fg-muted); }
 .more td { color: var(--fg-muted); }
+.act { width: 1%; text-align: right; }
+.table td.act { padding-right: 0; }
+.pick {
+  height: 1.75rem; padding: 0 0.6rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: transparent; color: var(--fg-muted); font-size: var(--text-xs); font-weight: 500;
+  transition: color var(--dur-fast), border-color var(--dur-fast), background-color var(--dur-fast);
+}
+.pick[aria-pressed='true'] { color: var(--invert-fg); background: var(--invert-bg); border-color: var(--invert-bg); }
+
+@media (hover: hover) { .pick:hover:not([aria-pressed='true']) { color: var(--fg); border-color: var(--line-strong); } }
 
 /* Phones: each segment becomes a small stacked entry with labelled values. */
 @media (max-width: 40rem) {
@@ -14,4 +26,6 @@
   .table td { display: inline; padding: 0 0.75rem 0 0; border: 0; white-space: normal; }
   .table td[data-label]::before { content: attr(data-label) ' '; color: var(--fg-muted); font-family: var(--font-sans); }
   .table td.covers { display: block; margin: 0.15rem 0; }
+  .table td.act { display: block; width: auto; margin-top: 0.4rem; text-align: left; }
 }
+@media (pointer: coarse) { .pick { height: 2.75rem; padding: 0 0.9rem; } }

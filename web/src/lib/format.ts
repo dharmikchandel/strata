@@ -12,7 +12,7 @@ export function formatBytes(v: number): string {
     v /= 1024;
     i++;
   } while (v >= 1024 && i < units.length - 1);
-  return v.toFixed(1) + ' ' + units[i];
+  return v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' ' + units[i];
 }
 
 // Segment IDs are long; the end is the part that differs between neighbours.

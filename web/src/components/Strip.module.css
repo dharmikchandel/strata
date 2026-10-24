@@ -4,29 +4,71 @@
 .box[data-blocks] { max-width: none; }
 
 .strip {
-  --h-skip: 0.5rem; --h-read: 4rem; --rise-from: 0.16;
-  display: flex; align-items: flex-end; gap: 2px; height: var(--h-read);
+  --h-skip: 0.5rem; --h-read: 6rem; --rise-from: 0.12;
+  position: relative; display: flex; align-items: flex-end; gap: 2px; height: var(--h-read);
 }
+.strip:focus-visible { outline-offset: 4px; border-radius: var(--radius-sm); }
 .strip.dense { gap: 0; }
-.strip.flat { height: var(--h-skip); }
-.strip > i { display: block; flex: 1 1 0; min-width: 1px; max-width: 2.4rem; height: var(--h-skip); border-radius: 2px 2px 0 0; }
+/* Nothing read: the bars stay a flat line, with a little height to point at. */
+.strip.flat { height: 1.5rem; }
+
+/* Each segment is a full-height slot, so the whole column is the target, not
+   only the painted bar. Under the bar, a hollow ring at skip height: what the
+   segment is before the search has decided, seen only while the result plays. */
+.slot {
+  position: relative; flex: 1 1 0; min-width: 1px; max-width: 2.4rem; height: 100%;
+  display: flex; align-items: flex-end;
+}
+.slot::before {
+  content: ''; position: absolute; inset: auto 0 0; height: var(--h-skip);
+  border-radius: 2px 2px 0 0; box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.slot > i { position: relative; display: block; width: 100%; height: var(--h-skip); border-radius: 2px 2px 0 0; }
+.slot > i.scanned { height: var(--h-read); }
 .time { background: var(--time); }
 .bloom { background: var(--bloom); }
 .scanned { background: var(--read); }
-.strip > i.scanned { height: var(--h-read); }
 
-/* The read bars rise into place once, left to right. Transform only. */
-.rise > i.scanned { transform: scaleY(var(--rise-from)); transform-origin: bottom; }
-.rise.go > i.scanned { transform: none; transition: transform 0.55s var(--ease-out); }
-@media (prefers-reduced-motion: reduce) { .rise.go > i.scanned { transition: none; } }
+.slot[data-active] { background: color-mix(in srgb, var(--fg) 12%, transparent); outline: 1px solid var(--line-strong); outline-offset: -1px; }
+/* The segment whose lines are shown: a near-white tick under its bar. */
+.slot[data-picked]::after { content: ''; position: absolute; inset: auto 0 -6px; height: 2px; background: var(--fg); }
+.pickable .slot:has(> i.scanned) { cursor: pointer; }
 
-.blocks > i { max-width: none; flex-grow: 0; }
-.blocks > i.scanned { min-width: 3px; } /* a read is always visible */
+/* Each result plays once, in the order the search worked: time-range skips
+   drop into place, then bloom skips, then the reads stand up. The delays come
+   from the plan (lib/stages.ts), so the legend's counts arrive with them.
+   Transform and opacity only; the resting state is the final one, so with
+   reduced motion (or no animation at all) the result is simply there. */
+@keyframes settle { from { opacity: 0; transform: translateY(-0.6rem); } }
+/* A read bar waits unseen (only its ring shows) until its stage, then stands up. */
+@keyframes rise { 0% { opacity: 0; transform: scaleY(var(--rise-from)); } 15% { opacity: 1; } }
+.slot > i { animation: settle 220ms var(--ease-out) var(--d, 0ms) both; }
+.slot > i.scanned { transform-origin: bottom; animation: rise 500ms var(--ease-out) var(--d, 0ms) both; }
+@media (prefers-reduced-motion: reduce) { .slot > i, .slot > i.scanned { animation: none; } }
+
+.tip {
+  position: absolute; bottom: calc(100% + 10px); transform: translateX(-50%); z-index: 2;
+  display: grid; gap: 0.2rem; width: max-content; max-width: min(22rem, 80vw); padding: 0.55rem 0.7rem;
+  pointer-events: none; background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  font-size: var(--text-xs); color: var(--fg-muted); text-align: left;
+}
+.tipHead { display: flex; align-items: center; gap: 0.45rem; color: var(--fg); }
+.tipHead i { flex: none; width: 10px; height: 10px; border-radius: 2px; }
+.tipHead b { font-weight: 600; }
+.tipHead .mono { margin-left: auto; padding-left: 0.75rem; color: var(--fg-muted); }
+.tip > .mono { color: var(--fg); font-size: var(--text-2xs); }
+.tipHint { color: var(--fg); }
+.tipId { font-size: var(--text-2xs); }
+.coarse { display: none; }
+
+.blocks > i { display: block; height: var(--h-skip); max-width: none; flex: 0 0 auto; border-radius: 2px 2px 0 0; }
+.blocks > i.scanned { height: var(--h-read); min-width: 3px; } /* a read is always visible */
 
 .axis {
   display: flex; justify-content: space-between; gap: var(--space-4);
-  margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(--line);
+  margin-top: 0.6rem; padding-top: 0.4rem; border-top: 1px solid var(--line);
   font-size: var(--text-2xs); color: var(--fg-muted);
 }
 .note { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--fg-muted); }
-@media (max-width: 40rem) { .strip { --h-read: 3rem; --rise-from: 0.2; } }
+@media (max-width: 40rem) { .strip { --h-read: 4rem; --rise-from: 0.16; } }
+@media (pointer: coarse) { .fine { display: none; } .coarse { display: inline; } }

@@ -1,5 +1,7 @@
-import type { SearchResult } from '../lib/api';
-import { formatBytes, plural } from '../lib/format';
+import { useMemo, useState } from 'react';
+import type { SearchResult, SegmentKind } from '../lib/api';
+import { formatBytes, n, plural } from '../lib/format';
+import { avoided, plan } from '../lib/stages';
 import { ReadList } from './ReadList';
 import { Strip } from './Strip';
 import { ChevronIcon } from './icons';
@@ -14,9 +16,24 @@ const GLOSSARY: [string, string, string, string][] = [
   ['scanned', 'Read', 'cost: a download of the whole segment', 'Downloaded and searched, the only step that touches storage. A tall bar in the strip; the fewer there are, the less the search read.'],
 ];
 
-// What one search did: a sentence, then the segments themselves, then the
-// detail for anyone who wants it.
-export function Readout({ result, stale }: { result: SearchResult; stale: boolean }) {
+interface Props {
+  result: SearchResult;
+  stale: boolean;
+  stored: number | null; // the overview's stored bytes, used when segments aren't listed
+  picked: string | null; // the read segment whose lines are shown
+  onPick: (id: string | null) => void;
+}
+
+let plays = 0; // numbers each result, so the legend's counts arrive again
+
+// What one search did: a sentence, what share of the stored data it never
+// downloaded, then the segments themselves, then the detail for anyone who
+// wants it.
+export function Readout({ result, stale, stored, picked, onPick }: Props) {
+  const [hot, setHot] = useState<string | null>(null); // pointed at in the strip or the list
+  const play = useMemo(() => ++plays, [result]);
+  const segs = result.segments ?? [];
+  const { ends } = useMemo(() => plan(segs.map((g) => g.kind)), [segs]);
   const m = result.metrics;
   if (!m || m.segments_considered === 0) return null;
   const total = m.segments_considered;
@@ -39,7 +56,15 @@ export function Readout({ result, stale }: { result: SearchResult; stale: boolea
     read = `Read ${scanned.toLocaleString('en-US')} (${bytes}).`;
   }
 
-  const legend: [string, string, number][] = [
+  // Bytes per outcome come from the segments' own sizes, from the same
+  // manifest snapshot as the search. Without the list, only the total is
+  // known (the overview's, a few seconds older at most).
+  const bytesBy: Record<SegmentKind, number> = { time: 0, bloom: 0, scanned: 0 };
+  for (const g of segs) bytesBy[g.kind] += g.kind === 'scanned' ? g.bytes_read : g.size;
+  const whole = segs.length ? bytesBy.time + bytesBy.bloom + bytesBy.scanned : (stored ?? 0);
+  const share = avoided(m.bytes_read, whole);
+
+  const legend: [SegmentKind, string, number][] = [
     ['time', 'Skipped by time range', m.skipped_by_time],
     ['bloom', 'Skipped by bloom filter', m.skipped_by_bloom],
     ['scanned', 'Read', scanned],
@@ -52,17 +77,38 @@ export function Readout({ result, stale }: { result: SearchResult; stale: boolea
           {lead}
           <span className={s.read} data-none={scanned === 0 || undefined}>{read}</span>
         </h2>
+        {share && (
+          <p className={s.saved}>
+            {scanned === 0 ? (
+              <>
+                None of the <span className="mono">{formatBytes(whole)}</span> stored was downloaded.
+              </>
+            ) : scanned === total ? (
+              <>
+                All <span className="mono">{formatBytes(whole)}</span> stored was downloaded: every segment could hold a match.
+              </>
+            ) : (
+              <>
+                <b className="mono">{share}</b> of the <span className="mono">{formatBytes(whole)}</span> stored was never downloaded.
+              </>
+            )}
+          </p>
+        )}
       </div>
 
-      <Strip result={result} metrics={m} />
+      <Strip result={result} metrics={m} hot={hot} picked={picked} onHot={setHot} onPick={onPick} />
 
       <div className={s.keyRow}>
-        <ul className={s.legend}>
+        {/* Each count arrives when the strip has played its stage. */}
+        <ul className={s.legend} key={play}>
           {legend.map(([kind, text, v]) => (
             <li key={kind} data-zero={!v || undefined}>
               <span className={`${s.swatch} ${s[kind]}`} aria-hidden="true" />
               {text}
-              <b className="mono">{v.toLocaleString('en-US')}</b>
+              <span className={s.figures} style={{ '--d': ends[kind] + 'ms' } as React.CSSProperties}>
+                <b className="mono">{n(v)}</b>
+                {v > 0 && segs.length > 0 && <span className="mono">({formatBytes(bytesBy[kind])})</span>}
+              </span>
             </li>
           ))}
         </ul>
@@ -73,7 +119,7 @@ export function Readout({ result, stale }: { result: SearchResult; stale: boolea
       </div>
 
       <div className={s.more}>
-        <ReadList segments={result.segments ?? []} />
+        <ReadList segments={segs} hot={hot} onHot={setHot} picked={picked} onPick={onPick} />
         <details className={s.explain}>
           <summary>
             <ChevronIcon className={s.chev} />

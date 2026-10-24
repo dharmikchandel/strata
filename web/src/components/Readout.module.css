@@ -6,11 +6,16 @@
 /* While a new search runs the previous result stays, clearly out of date. */
 .panel[data-stale] { opacity: 0.45; }
 
-.head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-5); flex-wrap: wrap; margin-bottom: var(--space-4); }
+.head { margin-bottom: var(--space-5); }
 .headline { font-family: var(--font-display); font-size: var(--text-2xl); line-height: 1.08; font-weight: 700; letter-spacing: var(--tracking-display); text-wrap: balance; }
 .read { color: var(--read-text); }
 /* Orange means data was fetched; "Read nothing" fetched none. */
 .read[data-none] { color: var(--fg); }
+/* What the skipping saved, in bytes: the share of everything stored that the
+   search never downloaded. A plain sentence under the headline. */
+.saved { margin-top: var(--space-2); font-size: var(--text-md); color: var(--fg-muted); }
+.saved .mono { font-size: 0.95em; color: var(--fg); }
+.saved b { font-weight: 600; }
 .timing { font-size: var(--text-xs); color: var(--fg-muted); white-space: nowrap; }
 
 /* The key to the strip, and what the search cost in time, on one line. */
@@ -19,6 +24,10 @@
 .legend li { display: inline-flex; align-items: center; gap: 0.5rem; }
 .legend b { color: var(--fg); font-weight: 500; }
 .legend li[data-zero] b { color: var(--fg-muted); font-weight: 400; }
+.figures { display: inline-flex; gap: 0.4rem; animation: arrive var(--dur) var(--ease-out) var(--d, 0ms) both; }
+.figures .mono:not(b) { color: var(--fg-muted); }
+@keyframes arrive { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .figures { animation: none; } }
 .legend li[data-zero] .swatch { opacity: 0.45; }
 .swatch { width: 10px; height: 10px; border-radius: 2px; }
 .time { background: var(--time); }
@@ -71,5 +80,6 @@
   .entry:nth-child(even) { border-left: 0; }
   .entry:nth-child(n + 2) { border-top: 1px solid var(--line); }
   .headline { font-size: 1.625rem; }
+  .saved { font-size: var(--text-base); }
 }
 @media (pointer: coarse) { .explain summary { min-height: 2.75rem; } }

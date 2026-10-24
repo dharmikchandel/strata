@@ -22,6 +22,7 @@ export function App() {
   const [active, setActive] = useState<number | null>(null); // example whose search is shown
   const [result, setResult] = useState<SearchResult | null>(null);
   const [seq, setSeq] = useState(0); // counts results, so each new one starts with its rows closed
+  const [segment, setSegment] = useState<string | null>(null); // a read segment whose lines alone are shown
   const [error, setError] = useState<Explained | null>(null);
   const [invalid, setInvalid] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -50,6 +51,7 @@ export function App() {
       const r = await search(toApiParams(q, overviewRef.current?.corpus ?? null), mine.signal);
       revealNext.current = reveal;
       setResult(r);
+      setSegment(null);
       setShown(q);
       setSeq((n) => n + 1);
     } catch (err) {
@@ -217,7 +219,7 @@ export function App() {
         {loaded && overview && !corpus && <FirstRun />}
 
         <div ref={readoutRef} className={s.anchor}>
-          {result && <Readout result={result} stale={busy} />}
+          {result && <Readout result={result} stale={busy} stored={corpus?.stored_bytes ?? null} picked={segment} onPick={setSegment} />}
         </div>
 
         {(result || firstSearch) && (
@@ -229,6 +231,8 @@ export function App() {
             terms={marks.terms}
             tags={marks.tags}
             extent={extent}
+            segment={segment}
+            onSegment={setSegment}
             onLimit={(limit) => submit({ ...query, limit }, false)}
             onTag={onTag}
           />

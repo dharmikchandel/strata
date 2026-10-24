@@ -34,9 +34,21 @@
   background: var(--bg); color: var(--fg); font: inherit; font-weight: 500; font-variant-numeric: tabular-nums;
 }
 
+/* Shown while a segment picked in the strip narrows the lines. */
+.filter {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); background: var(--bg-raised);
+  font-size: var(--text-sm); color: var(--fg-muted);
+}
+.filter p { max-width: 90ch; }
+.filter .mono { color: var(--fg); }
+.clear {
+  height: 2rem; padding: 0 0.8rem; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: transparent; color: var(--fg); font-size: var(--text-sm); font-weight: 600;
+}
 .none { padding: var(--space-5) var(--space-4); font-size: var(--text-sm); color: var(--fg-muted); max-width: 80ch; }
 .none b { color: var(--fg); font-weight: 600; }
 
-@media (hover: hover) { .limit select:hover { border-color: var(--line-strong); } .wrap:hover { color: var(--fg); } }
-@media (max-width: 40rem) { .head { padding: var(--space-3); } }
-@media (pointer: coarse) { .limit select { height: 2.75rem; font-size: var(--text-md); } .wrap { min-height: 2.75rem; } }
+@media (hover: hover) { .limit select:hover { border-color: var(--line-strong); } .wrap:hover { color: var(--fg); } .clear:hover { background: var(--bg-hover); } }
+@media (max-width: 40rem) { .head, .filter { padding: var(--space-3); } }
+@media (pointer: coarse) { .limit select { height: 2.75rem; font-size: var(--text-md); } .wrap { min-height: 2.75rem; } .clear { height: 2.75rem; } }
