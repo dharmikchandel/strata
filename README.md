@@ -47,7 +47,7 @@ You need Docker and Go 1.26 or later. `make` lists every shortcut below.
 
 ```sh
 make up                      # Strata + a local S3-compatible store (RustFS) + a stream of generated logs
-make ui                      # the search page: http://127.0.0.1:7080
+make ui                      # the web pages: http://127.0.0.1:7080 (search at /search/)
 make search Q="lapack"       # or search from the command line
 make clean                   # stop everything and delete the data
 ```
@@ -63,11 +63,11 @@ go run ./cmd/stratactl ingest -file app.log
 # search them (lines become searchable within about 5 seconds)
 go run ./cmd/stratactl search -text "error timeout" -limit 10
 
-# or use the web page: http://127.0.0.1:7080
+# or use the web pages: http://127.0.0.1:7080 (search at /search/)
 go run ./cmd/stratactl ui
 ```
 
-The page opens with what is stored (lines, segments, time range), a few one-click example searches that each show a different way segments get skipped, and the search form. Every search is then drawn as it happened: one bar per segment, oldest to newest, short if the segment was skipped and tall if it was read, under a sentence such as "Skipped 193 of 196 segments. Read 3 (15.3 MiB)." A list below says which segments were read and how many of the lines shown each one supplied. Those extras are optional and come from flags, so the page carries no knowledge of any particular dataset. For the benchmark dataset:
+The landing page (`/`) runs the first example search as soon as it opens and shows the real answer the way `stratactl search` prints it, followed by how a search skips segments, the measured results (read from `bench/results` when the page is built), what happens when things fail, and the limitations. The search page (`/search/`) opens with what is stored (lines, segments, time range), a few one-click example searches that each show a different way segments get skipped, and the search form. Every search is then drawn as it happened: one bar per segment, oldest to newest, short if the segment was skipped and tall if it was read, under a sentence such as "Skipped 193 of 196 segments. Read 3 (15.3 MiB)." A list below says which segments were read and how many of the lines shown each one supplied. Those extras are optional and come from flags, so the search page carries no knowledge of any particular dataset. For the benchmark dataset:
 
 ```sh
 go run ./cmd/stratactl ui \
@@ -252,7 +252,7 @@ Stated plainly, because they matter:
 ```
 cmd/strata         the server binary
 cmd/stratactl      client: ingest, search, and the web page (`stratactl ui`)
-web                the web page's source (React, TypeScript, Vite); built into cmd/stratactl/ui
+web                the web pages' source (React, TypeScript, Vite): landing page and search; built into cmd/stratactl/ui
 cmd/strata-bench   the benchmark harness
 cmd/strata-gen     the generated-traffic sender and verifier
 internal/segment   the segment file format (header, lines, index, bloom filter)

@@ -2,7 +2,7 @@
 #
 # Typical use:
 #   make up                       server + object store + a stream of generated logs
-#   make ui                       the search page, http://127.0.0.1:7080
+#   make ui                       the web pages, http://127.0.0.1:7080 (search at /search/)
 #   make search Q="lapack"        search from the command line
 #   make clean                    stop everything and delete the data
 #
@@ -48,7 +48,7 @@ up: ## Start the server, object store AND the live log generator (PROFILE=demo|b
 	  echo "      set DURATION=10m to stop it, or run 'make clean' when you are done."; fi
 	@echo
 	@echo "Running. Generated logs are being sent and become searchable within about 5 seconds."
-	@echo "  make ui                  the search page ($(UI_ADDR))"
+	@echo "  make ui                  the web pages: http://$(UI_ADDR) (search at /search/)"
 	@echo "  make search Q=\"lapack\"   search from the command line"
 	@echo "  make logs                follow the server and the generator"
 	@echo "  make clean               stop and delete all data"
@@ -70,14 +70,14 @@ logs: ## Follow the server and generator logs (Ctrl-C to leave)
 
 ##@ Use
 
-ui: ## Serve the search page for generated logs (http://127.0.0.1:7080)
+ui: ## Serve the landing page and search for generated logs (http://127.0.0.1:7080)
 	go run ./cmd/stratactl ui -server $(STRATA_ADDR) -listen $(UI_ADDR) \
 	  -corpus-name "Generated logs (modelled on a real supercomputer log)" \
 	  -examples bench/demo/live-examples.json \
 	  -credit "The log lines are made up; their message shapes and frequencies come from the BGL supercomputer log (LogHub; Oliner and Stearley, DSN 2007)." \
 	  -about-url $(UI_REPO)
 
-ui-bgl: ## Serve the search page for the real BGL dataset (after `make ingest-bgl`)
+ui-bgl: ## Serve the landing page and search for the real BGL dataset (after `make ingest-bgl`)
 	go run ./cmd/stratactl ui -server $(STRATA_ADDR) -listen $(UI_ADDR) \
 	  -corpus-name "BGL supercomputer logs" -examples bench/demo/bgl-examples.json \
 	  -credit "Data: BGL logs from the BlueGene/L supercomputer at Lawrence Livermore National Laboratory (Oliner and Stearley, DSN 2007), via LogHub." \
@@ -122,10 +122,10 @@ check: fmt vet web-check test ## Formatting, vet, the web page's checks and the 
 web-install: ## Install the web page's dependencies (needs Node 22 or later)
 	cd web && npm ci
 
-web-dev: ## Live-reloading page on http://127.0.0.1:5173, using the API of a running `make ui`
+web-dev: ## Live-reloading pages on http://127.0.0.1:5173, using the API of a running `make ui`
 	cd web && STRATA_UI=$(UI_ADDR) npx vite --host 127.0.0.1
 
-web-build: ## Rebuild the page into cmd/stratactl/ui (commit the result)
+web-build: ## Rebuild the pages into cmd/stratactl/ui (commit the result)
 	cd web && npx vite build
 
 # The built page is committed so that `go build` needs no Node. This fails when

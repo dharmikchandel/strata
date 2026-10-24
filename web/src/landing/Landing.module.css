@@ -1,0 +1,64 @@
+/* The hero: the claim set big and flush-left, the proof (a real command and
+   its real answer) beside it. */
+/* The headline spans the page; under it the pitch and the proof sit side by
+   side, top-aligned, with the proof given the wider column. */
+.hero {
+  display: grid; grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr); gap: var(--space-6) var(--space-7);
+  align-items: start; max-width: var(--content-max); margin: 0 auto;
+  padding: var(--space-8) var(--gutter-r) var(--space-6) var(--gutter);
+}
+.headline {
+  grid-column: 1 / -1; margin: 0; font-size: var(--text-hero); line-height: 0.96;
+  letter-spacing: var(--tracking-hero); font-weight: 800; max-width: 15ch;
+}
+.heroText { min-width: 0; }
+.lede { margin-top: 0; font-size: var(--text-lg); line-height: 1.55; color: var(--fg-muted); max-width: 46ch; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-6); }
+.primary {
+  display: inline-flex; align-items: center; gap: 0.6rem; height: 3.5rem; padding: 0 1.6rem;
+  border-radius: var(--radius-lg); background: var(--invert-bg); color: var(--invert-fg);
+  font-size: var(--text-md); font-weight: 700; text-decoration: none; letter-spacing: -0.005em;
+  transition: background-color var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+}
+.arrow { flex: none; width: 18px; height: 18px; transition: transform var(--dur) var(--ease-out); }
+.secondary {
+  display: inline-flex; align-items: center; height: 3.5rem; padding: 0 1.3rem; border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong); color: var(--fg); font-size: var(--text-md); font-weight: 600; text-decoration: none;
+  transition: background-color var(--dur-fast);
+}
+@media (hover: hover) {
+  .primary:hover { background: var(--invert-hover); }
+  .primary:hover .arrow { transform: translateX(3px); }
+  .secondary:hover { background: var(--bg-raised); }
+}
+.corpus { margin-top: var(--space-5); font-size: var(--text-2xs); color: var(--fg-muted); }
+.heroProof { min-width: 0; }
+
+/* The same search as the app draws it, spanning the page. */
+.stripBand {
+  max-width: var(--content-max); margin: 0 auto; padding: var(--space-5) var(--gutter-r) 0 var(--gutter);
+}
+.stripHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-5); margin-bottom: var(--space-4); }
+.stripTitle { font-size: var(--text-sm); font-weight: 500; color: var(--fg-muted); }
+.stripRead { color: var(--read-text); font-weight: 700; }
+.stripLink { display: inline-flex; align-items: center; gap: 0.2rem; font-size: var(--text-sm); font-weight: 600; color: var(--fg); text-decoration: none; }
+@media (hover: hover) { .stripLink:hover { text-decoration: underline; } }
+
+/* The close: one more chance to act, as big as the opening. */
+.close {
+  max-width: var(--content-max); margin: var(--space-9) auto 0; padding: var(--space-8) var(--gutter-r) var(--space-6) var(--gutter);
+  border-top: 1px solid var(--line);
+}
+.closeTitle { margin: 0; font-size: var(--text-hero); line-height: 0.95; letter-spacing: var(--tracking-hero); font-weight: 800; }
+.closeText { margin: var(--space-4) 0 var(--space-6); font-size: var(--text-lg); color: var(--fg-muted); max-width: 48ch; }
+
+@media (max-width: 64rem) {
+  .hero { grid-template-columns: 1fr; gap: var(--space-6); padding-top: var(--space-7); }
+}
+@media (max-width: 40rem) {
+  .lede { font-size: var(--text-md); }
+  .primary, .secondary { width: 100%; justify-content: center; }
+}
+@media (pointer: coarse) {
+  .stripLink { min-height: 44px; }
+}

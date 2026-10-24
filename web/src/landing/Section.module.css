@@ -1,0 +1,10 @@
+/* A landing section: a display title flush-left, a short intro, then content. */
+.section { max-width: var(--content-max); margin: 0 auto; padding: var(--space-9) var(--gutter-r) 0 var(--gutter); scroll-margin-top: 60px; }
+.head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3) var(--space-7); align-items: end; margin-bottom: var(--space-6); }
+.title { margin: 0; font-size: var(--text-2xl); max-width: 16ch; }
+.intro { color: var(--fg-muted); font-size: var(--text-md); max-width: 54ch; }
+@media (max-width: 52rem) {
+  .section { padding-top: var(--space-8); }
+  .head { grid-template-columns: 1fr; }
+  .title { font-size: var(--text-xl); }
+}

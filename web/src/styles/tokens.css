@@ -6,17 +6,29 @@
      --bloom  steel blue: ruled out by a bloom filter, not opened
      --time   graphite: ruled out by its time range, not opened
    Everything else is neutral. */
+/* Type: three faces, three jobs.
+     --font-display  Bricolage Grotesque: headlines, the readout sentence, page
+                     titles. Its optical-size axis tightens it at large sizes.
+     --font-sans     Hanken Grotesk: interface text, labels, prose.
+     --font-mono     JetBrains Mono: log lines, IDs, times and numbers only. */
 :root {
-  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: 'Bricolage Grotesque Variable', 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
 
-  --text-2xs: 0.6875rem; /* 11px */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.8125rem;  /* 13px */
-  --text-base: 0.875rem; /* 14px */
-  --text-md: 1rem;       /* 16px */
-  --text-lg: 1.25rem;    /* 20px */
-  --text-xl: 1.5rem;     /* 24px */
+  --text-2xs: 0.75rem;    /* 12px captions, axis labels */
+  --text-xs: 0.8125rem;   /* 13px labels, log lines */
+  --text-sm: 0.875rem;    /* 14px secondary text, controls */
+  --text-base: 0.9375rem; /* 15px body */
+  --text-md: 1.0625rem;   /* 17px search input, lede on phones */
+  --text-lg: 1.1875rem;   /* 19px landing lede */
+  --text-xl: 1.5rem;      /* 24px section titles on phones */
+  --text-2xl: 2.25rem;    /* 36px readout sentence, landing section titles */
+  --text-3xl: 2.75rem;    /* 44px page title */
+  --text-hero: clamp(3rem, 1.2rem + 5.1vw, 6rem); /* landing headlines only */
+
+  --tracking-display: -0.035em;
+  --tracking-hero: -0.03em; /* tighter makes Bricolage 800 letters touch */
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -25,6 +37,8 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
+  --space-8: 5rem;
+  --space-9: 8rem;
 
   --radius-sm: 4px;
   --radius: 6px;
@@ -35,8 +49,8 @@
   --dur: 200ms;
 
   --content-max: 76rem;
-  --gutter: max(1rem, env(safe-area-inset-left));
-  --gutter-r: max(1rem, env(safe-area-inset-right));
+  --gutter: max(1.25rem, env(safe-area-inset-left));
+  --gutter-r: max(1.25rem, env(safe-area-inset-right));
 
   /* dark */
   --bg: #0a0b0d;

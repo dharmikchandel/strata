@@ -1,0 +1,35 @@
+.term {
+  container-type: inline-size;
+  margin: 0; min-width: 0; border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--bg); overflow: hidden;
+}
+.head {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--line); background: var(--bg-panel);
+  font-size: var(--text-2xs); color: var(--fg-muted);
+}
+.title { font-family: var(--font-mono); }
+.badge {
+  margin-left: auto; padding: 0.1rem 0.5rem; border-radius: 999px; border: 1px solid var(--line-strong);
+  font-weight: 600; letter-spacing: 0.02em;
+}
+.badge[data-state='live'] { color: var(--fg); }
+.badge[data-state='live']::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 0.4rem; border-radius: 50%;
+  background: var(--fg); vertical-align: 0.08em;
+}
+.body {
+  margin: 0; padding: 1rem 1.1rem 1.2rem;
+  font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.7; color: var(--fg-muted);
+}
+.line { display: block; }
+.log { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+/* Summary lines wrap like a narrow terminal, continuing under the values
+   (the CLI's 10-column label gutter), so no number is ever cut off. */
+.stat { color: var(--fg); white-space: pre-wrap; padding-left: 10ch; text-indent: -10ch; }
+.command { color: var(--fg); white-space: pre-wrap; padding-left: 2ch; text-indent: -2ch; }
+.unit { white-space: pre; }
+.prompt { color: var(--fg-muted); }
+.caret { display: inline-block; width: 0.6em; height: 1.15em; vertical-align: -0.2em; background: var(--fg-muted); }
+.dim { color: var(--fg-muted); }
+@container (max-width: 40rem) { .bar { display: none; } }

@@ -10,8 +10,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 400 var(--text-base) / 1.5 var(--font-sans);
-  font-feature-settings: 'ss01', 'cv11';
+  font: 400 var(--text-base) / 1.55 var(--font-sans);
+  letter-spacing: 0.003em; /* light text on dark reads better a touch open */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -31,7 +31,10 @@ input::placeholder { color: var(--fg-muted); opacity: 1; }
 
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* Display type: Bricolage at headline sizes, tight and heavy. */
+.display { font-family: var(--font-display); font-weight: 700; letter-spacing: var(--tracking-display); line-height: 1.05; font-optical-sizing: auto; text-wrap: balance; }
 
 /* Visually hidden but still read by assistive tech. */
 .sr-only {

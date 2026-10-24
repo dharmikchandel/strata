@@ -1,0 +1,14 @@
+/* A different rhythm from the other sections: the title holds its place on
+   the left while the cases scroll past on the right. */
+.split { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); gap: var(--space-7); align-items: start; }
+.aside { position: sticky; top: calc(60px + var(--space-6)); }
+.title { margin: 0 0 var(--space-4); font-size: clamp(2.25rem, 1.2rem + 2.8vw, 3.5rem); line-height: 1; max-width: 9ch; }
+.list { margin: 0; border-top: 1px solid var(--line); }
+.row { padding: var(--space-5) 0; border-bottom: 1px solid var(--line); }
+.row dt { font-weight: 600; font-size: var(--text-md); line-height: 1.4; }
+.row dd { margin: var(--space-2) 0 0; color: var(--fg-muted); max-width: 64ch; }
+@media (max-width: 52rem) {
+  .split { grid-template-columns: 1fr; gap: var(--space-5); }
+  .aside { position: static; }
+  .title { font-size: var(--text-2xl); }
+}

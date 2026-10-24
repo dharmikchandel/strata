@@ -55,6 +55,12 @@ export const AlertIcon = (p: IconProps) => (
   </svg>
 );
 
+export const ArrowRightIcon = (p: IconProps) => (
+  <svg {...base} className={p.className}>
+    <path d="M3 8h10M9 4l4 4-4 4" />
+  </svg>
+);
+
 export const ArrowUpRightIcon = (p: IconProps) => (
   <svg {...base} className={p.className}>
     <path d="M5 11 11 5M6 5h5v5" />

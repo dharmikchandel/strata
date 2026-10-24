@@ -3,9 +3,9 @@
   background: var(--bg-panel); overflow: hidden; transition: opacity var(--dur) var(--ease-out);
 }
 .wrap[data-stale] { opacity: 0.45; }
-.table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.55; }
+.table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; }
 .table th {
-  text-align: left; font-family: var(--font-sans); font-weight: 500; font-size: var(--text-xs); color: var(--fg-muted);
+  text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: var(--text-xs); color: var(--fg-muted);
   padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); background: var(--bg-raised);
 }
 .table td { padding: 0.45rem 0.9rem; vertical-align: top; border-bottom: 1px solid var(--line); }

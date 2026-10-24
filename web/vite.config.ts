@@ -1,7 +1,11 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// The built page is embedded in the stratactl binary (go:embed ui), so it is
+// Two pages: the landing page at / (index.html) and the search app at
+// /search/ (search/index.html).
+//
+// The built pages are embedded in the stratactl binary (go:embed ui), so the build is
 // written straight into cmd/stratactl/ui and committed; `make web-check` fails
 // when that copy is out of date with this source.
 //
@@ -16,8 +20,13 @@ export default defineConfig({
     // script and style in files, and skip the preload polyfill (modern browsers only).
     modulePreload: { polyfill: false },
     assetsInlineLimit: 0,
+    rollupOptions: {
+      input: { landing: resolve(__dirname, 'index.html'), search: resolve(__dirname, 'search/index.html') },
+    },
   },
   server: {
+    // The landing page imports the measured results from bench/results.
+    fs: { allow: ['..'] },
     proxy: { '/api': `http://${process.env.STRATA_UI ?? '127.0.0.1:7080'}` },
   },
 });

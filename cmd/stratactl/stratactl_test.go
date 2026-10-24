@@ -265,14 +265,27 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 
 func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
 	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
-	page := readFile(t, "ui/index.html")
-	// The page itself and every file the built index.html links to.
-	paths := []string{"/"}
-	for _, m := range regexp.MustCompile(`(?:src|href)="(/[^"]+)"`).FindAllStringSubmatch(page, -1) {
-		paths = append(paths, m[1])
+	// Both pages (the landing page at / and the app at /search/) and every
+	// file the built pages link to.
+	pages := map[string]string{"/": readFile(t, "ui/index.html"), "/search/": readFile(t, "ui/search/index.html")}
+	var paths []string
+	for url, page := range pages {
+		paths = append(paths, url)
+		links := regexp.MustCompile(`(?:src|href)="(/[^"#]+)"`).FindAllStringSubmatch(page, -1)
+		if len(links) < 3 {
+			t.Fatalf("%s links to %v; expected its script and stylesheets (run make web-build)", url, links)
+		}
+		for _, m := range links {
+			paths = append(paths, m[1])
+		}
+		// The CSP allows no inline code, so the built pages must not contain any.
+		if regexp.MustCompile(`<script(?:\s[^>]*)?>\s*[^<\s]|<style|\sstyle="`).MatchString(page) {
+			t.Errorf("the built %s has an inline script or style, which the CSP blocks", url)
+		}
 	}
-	if len(paths) < 3 {
-		t.Fatalf("the built page links to %v; expected its script and stylesheet (run make web-build)", paths[1:])
+	// The app's address without the slash must still reach it.
+	if rec := get(t, h, "/search"); rec.Code != http.StatusMovedPermanently || rec.Header().Get("Location") != "search/" && rec.Header().Get("Location") != "/search/" {
+		t.Errorf("/search: %d %q, want a redirect to /search/", rec.Code, rec.Header().Get("Location"))
 	}
 	for _, path := range paths {
 		rec := get(t, h, path)
@@ -283,10 +296,6 @@ func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
 		if !strings.Contains(csp, "default-src 'none'") || strings.Contains(csp, "unsafe-inline") || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
 			t.Errorf("%s: weak headers: %v", path, rec.Header())
 		}
-	}
-	// The CSP allows no inline code, so the built page must not contain any.
-	if regexp.MustCompile(`<script(?:\s[^>]*)?>\s*[^<\s]|<style|\sstyle="`).MatchString(page) {
-		t.Error("the built index.html has an inline script or style, which the CSP blocks")
 	}
 	// The page must never insert server text as HTML.
 	for path, src := range webSources(t, ".ts", ".tsx") {
@@ -305,7 +314,7 @@ func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
 // class names are made unique at build time; only the small global files may
 // define plain classes, and only the few listed here.
 func TestStylesAreScopedToTheirComponents(t *testing.T) {
-	globalOK := map[string]bool{"mono": true, "sr-only": true}
+	globalOK := map[string]bool{"mono": true, "sr-only": true, "display": true}
 	for path, css := range webSources(t, ".css") {
 		if strings.HasSuffix(path, ".module.css") {
 			continue
@@ -325,7 +334,7 @@ func TestStylesAreScopedToTheirComponents(t *testing.T) {
 // Phone adaptation guards. These check the things that went wrong on phones and
 // that no desktop-width test would notice.
 func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
-	page := readFile(t, "ui/index.html")
+	page := readFile(t, "ui/index.html") + readFile(t, "ui/search/index.html")
 	tsx := webSources(t, ".tsx")
 	css := webSources(t, ".css")
 	all := func(m map[string]string) string {
@@ -354,7 +363,7 @@ func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
 		t.Error("the page should focus the search box only on pointer devices")
 	}
 	// Notch / rounded-corner safe areas need viewport-fit=cover to take effect.
-	if !strings.Contains(page, "viewport-fit=cover") || !strings.Contains(allCSS, "safe-area-inset") {
+	if strings.Count(page, "viewport-fit=cover") < 2 || !strings.Contains(allCSS, "safe-area-inset") {
 		t.Error("the page should extend under the notch and pad by the safe-area insets")
 	}
 	// Log search terms must not be auto-capitalised or autocorrected.

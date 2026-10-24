@@ -8,6 +8,7 @@ import { Readout } from './components/Readout';
 import { Results } from './components/Results';
 import { Footer } from './components/Footer';
 import { AlertIcon } from './components/icons';
+import { formatBytes, n, plural } from './lib/format';
 import s from './App.module.css';
 
 export function App() {
@@ -109,8 +110,22 @@ export function App() {
 
   return (
     <>
-      <TopBar corpus={corpus} loaded={loaded} />
+      <TopBar page="search" sourceUrl={overview?.about_url} />
       <main className={s.main}>
+        <div className={s.title}>
+          <h1 className="display">{corpus?.name || 'Stored logs'}</h1>
+          {corpus && (
+            <p className={`${s.facts} mono`}>
+              <span>{n(corpus.entries)} lines</span>
+              <span>{plural(corpus.segments, 'segment')}</span>
+              <span>{formatBytes(corpus.stored_bytes)}</span>
+              <span className={s.range}>
+                {corpus.first} → {corpus.last} UTC
+              </span>
+            </p>
+          )}
+        </div>
+
         {loaded && !corpus && (
           <p className={s.empty}>
             Nothing is stored yet. Send some logs with <code className="mono">stratactl ingest</code>, then search them here.
