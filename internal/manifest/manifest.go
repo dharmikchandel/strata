@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dharmikchandel/strata/internal/segment"
+
 	_ "modernc.org/sqlite" // registers the "sqlite" database/sql driver
 )
 
@@ -63,6 +65,13 @@ type Segment struct {
 	// listings light. Nil in a stored row means "unknown", and such a segment
 	// can never be skipped by a bloom check.
 	Bloom []byte
+	// Generation is 0 for a segment sealed by ingest and one more than its
+	// newest input for a merged one, so it says how many merges its lines
+	// have been through.
+	Generation int
+	// Tags are the distinct tag pairs in the segment. Written to the tag
+	// catalogue (see Tags) with the segment; never read back into a Segment.
+	Tags []segment.Tag
 }
 
 func (s Segment) validate() error {
@@ -147,7 +156,22 @@ var migrations = []string{
 	// 3: a small key/value table. It holds the manifest's identity (see
 	// InstanceID), which pairs a manifest file with the bucket it describes.
 	`CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+	// 4: how many merges a segment's lines have been through, and a catalogue
+	// of the tag values stored, so a search box can suggest them without
+	// opening any segment. Rows from before this migration count as never
+	// merged, and their tags appear once a merge or new data writes them.
+	`ALTER TABLE segments ADD COLUMN generation INTEGER NOT NULL DEFAULT 0;
+	CREATE TABLE tag_keys (key TEXT PRIMARY KEY, capped INTEGER NOT NULL DEFAULT 0);
+	CREATE TABLE tag_values (key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (key, value)) WITHOUT ROWID;`,
 }
+
+// The tag catalogue is bounded, because a tag can hold anything (a request
+// ID would have a new value on every line): at most MaxTagKeys keys and
+// MaxTagValues values per key. A key that reaches the limit is marked capped.
+const (
+	MaxTagKeys   = 64
+	MaxTagValues = 256
+)
 
 func migrate(ctx context.Context, db *sql.DB) error {
 	// A dedicated connection so the version check and the migration see the
@@ -212,14 +236,19 @@ func (m *Manifest) Replace(ctx context.Context, add []Segment, deleteIDs []strin
 	now := time.Now().UnixNano()
 	for _, s := range add {
 		_, err := tx.ExecContext(ctx,
-			`INSERT INTO segments (id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at, bloom)
-			 VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-			s.ID, s.Key, s.MinTS, s.MaxTS, s.Count, s.Size, now, s.Bloom)
+			`INSERT INTO segments (id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at, bloom, generation)
+			 VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+			s.ID, s.Key, s.MinTS, s.MaxTS, s.Count, s.Size, now, s.Bloom, s.Generation)
 		if err != nil {
 			if isConstraintViolation(err) {
 				return fmt.Errorf("%w: id %q, key %q", ErrDuplicate, s.ID, s.Key)
 			}
 			return fmt.Errorf("manifest: insert segment %q: %w", s.ID, err)
+		}
+		// In the same transaction: the catalogue never names a value that
+		// no committed segment holds.
+		if err := addTags(ctx, tx, s.Tags); err != nil {
+			return err
 		}
 	}
 	m.hook("inserted")
@@ -245,6 +274,63 @@ func (m *Manifest) Replace(ctx context.Context, add []Segment, deleteIDs []strin
 	return nil
 }
 
+// addTags records tag pairs in the catalogue, within its limits.
+func addTags(ctx context.Context, tx *sql.Tx, tags []segment.Tag) error {
+	for _, tg := range tags {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT OR IGNORE INTO tag_keys (key) SELECT ? WHERE (SELECT COUNT(*) FROM tag_keys) < ?`, tg.Key, MaxTagKeys); err != nil {
+			return fmt.Errorf("manifest: record tag key: %w", err)
+		}
+		res, err := tx.ExecContext(ctx,
+			`INSERT OR IGNORE INTO tag_values (key, value)
+			 SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM tag_keys WHERE key = ?1)
+			   AND (SELECT COUNT(*) FROM tag_values WHERE key = ?1) < ?3`, tg.Key, tg.Value, MaxTagValues)
+		if err != nil {
+			return fmt.Errorf("manifest: record tag value: %w", err)
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			// Already there, or no room: only the second caps the key.
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE tag_keys SET capped = 1 WHERE key = ?1
+				 AND NOT EXISTS (SELECT 1 FROM tag_values WHERE key = ?1 AND value = ?2)`, tg.Key, tg.Value); err != nil {
+				return fmt.Errorf("manifest: cap tag key: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+// TagKey is one tag key in the catalogue with the values seen for it, sorted.
+// Capped means more values exist than were kept.
+type TagKey struct {
+	Key    string
+	Values []string
+	Capped bool
+}
+
+// Tags returns the tag catalogue: every key, and the values stored for it.
+func (m *Manifest) Tags(ctx context.Context) ([]TagKey, error) {
+	rows, err := m.db.QueryContext(ctx,
+		`SELECT k.key, k.capped, v.value FROM tag_keys k JOIN tag_values v ON v.key = k.key ORDER BY k.key, v.value`)
+	if err != nil {
+		return nil, fmt.Errorf("manifest: tags: %w", err)
+	}
+	defer rows.Close()
+	var out []TagKey
+	for rows.Next() {
+		var key, value string
+		var capped bool
+		if err := rows.Scan(&key, &capped, &value); err != nil {
+			return nil, fmt.Errorf("manifest: tags: %w", err)
+		}
+		if len(out) == 0 || out[len(out)-1].Key != key {
+			out = append(out, TagKey{Key: key, Capped: capped})
+		}
+		out[len(out)-1].Values = append(out[len(out)-1].Values, value)
+	}
+	return out, rows.Err()
+}
+
 func (m *Manifest) hook(stage string) {
 	if m.testHook != nil {
 		m.testHook(stage)
@@ -256,7 +342,7 @@ func (m *Manifest) hook(stage string) {
 // entirely or not at all.
 func (m *Manifest) List(ctx context.Context, status Status) ([]Segment, error) {
 	rows, err := m.db.QueryContext(ctx,
-		`SELECT id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at
+		`SELECT id, storage_key, min_ts, max_ts, entry_count, size_bytes, status, created_at, generation
 		 FROM segments WHERE status = ? ORDER BY min_ts, id`, string(status))
 	if err != nil {
 		return nil, fmt.Errorf("manifest: list: %w", err)
@@ -267,7 +353,7 @@ func (m *Manifest) List(ctx context.Context, status Status) ([]Segment, error) {
 		var s Segment
 		var created int64
 		var st string
-		if err := rows.Scan(&s.ID, &s.Key, &s.MinTS, &s.MaxTS, &s.Count, &s.Size, &st, &created); err != nil {
+		if err := rows.Scan(&s.ID, &s.Key, &s.MinTS, &s.MaxTS, &s.Count, &s.Size, &st, &created, &s.Generation); err != nil {
 			return nil, fmt.Errorf("manifest: scan: %w", err)
 		}
 		s.Status = Status(st)

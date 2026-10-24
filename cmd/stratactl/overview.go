@@ -156,10 +156,18 @@ type exampleJSON struct {
 
 type overviewJSON struct {
 	// Corpus is null when nothing is stored yet.
-	Corpus   *corpusJSON   `json:"corpus"`
+	Corpus *corpusJSON `json:"corpus"`
+	// Tags are the stored tag values by key, for suggestions in the search box.
+	Tags     []tagJSON     `json:"tags"`
 	Examples []exampleJSON `json:"examples"`
 	Credit   string        `json:"credit,omitempty"`
 	AboutURL string        `json:"about_url,omitempty"`
+}
+
+type tagJSON struct {
+	Key    string   `json:"key"`
+	Values []string `json:"values"`
+	Capped bool     `json:"capped"` // more values exist than are listed
 }
 
 // shapeCorpus describes what is stored, or returns nil when nothing is.
@@ -192,6 +200,10 @@ func (h *uiHandler) overview(w http.ResponseWriter, r *http.Request) {
 			From: e.From, To: e.To, LastSeconds: e.lastSeconds(), Limit: e.Limit})
 	}
 	out.Corpus = shapeCorpus(st, h.opts.CorpusName)
+	out.Tags = make([]tagJSON, 0, len(st.Tags))
+	for _, k := range st.Tags {
+		out.Tags = append(out.Tags, tagJSON{Key: k.Key, Values: k.Values, Capped: k.Capped})
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	json.NewEncoder(w).Encode(out)

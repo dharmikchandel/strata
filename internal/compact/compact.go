@@ -70,8 +70,18 @@ type Config struct {
 	GCInterval  time.Duration // how often Run garbage-collects
 	OrphanGrace time.Duration
 
+	// OnMerge and OnGC, if set, are told about each merge and each garbage
+	// collection that removed something, as Run does them (the server keeps
+	// a short log of them for its system view).
+	OnMerge func(Report)
+	OnGC    func(GCReport)
+
 	Logger *slog.Logger
 }
+
+// maxSegmentTags bounds the tag pairs recorded per segment (see
+// manifest.MaxTagValues for why the catalogue is bounded).
+const maxSegmentTags = 1024
 
 // Report describes one successful merge.
 type Report struct {
@@ -257,6 +267,12 @@ func (c *Compactor) CompactOnce(ctx context.Context) (*Report, error) {
 		ID:    segment.NewID(),
 		MinTS: merged.MinTimestamp(), MaxTS: merged.MaxTimestamp(),
 		Count: merged.Len(), Size: int64(len(data)), Bloom: bloomBytes,
+		// Recorded again from the merged lines, which fills in the catalogue
+		// for segments stored before it existed.
+		Tags: segment.DistinctTags(entries, maxSegmentTags),
+	}
+	for _, s := range batch {
+		row.Generation = max(row.Generation, s.Generation+1)
 	}
 	row.Key = segment.KeyForID(row.ID)
 	if err := c.cfg.Storage.Put(ctx, row.Key, bytes.NewReader(data)); err != nil {
@@ -463,12 +479,18 @@ func (c *Compactor) Run(ctx context.Context) {
 				break
 			}
 			c.log.Info("compacted", "inputs", len(rep.InputIDs), "output", rep.OutputID, "entries", rep.Entries, "bytes_in", rep.BytesIn, "bytes_out", rep.BytesOut)
+			if c.cfg.OnMerge != nil {
+				c.cfg.OnMerge(*rep)
+			}
 		}
 		if ctx.Err() == nil && !time.Now().Before(nextGC) {
 			if rep, err := c.GarbageCollect(ctx); err != nil && ctx.Err() == nil {
 				c.log.Error("garbage collection failed", "err", err)
 			} else if rep != nil && (rep.ReplacedFilesDeleted+rep.OrphansDeleted > 0) {
 				c.log.Info("garbage collected", "replaced", rep.ReplacedFilesDeleted, "orphans", rep.OrphansDeleted)
+				if c.cfg.OnGC != nil {
+					c.cfg.OnGC(*rep)
+				}
 			}
 			nextGC = time.Now().Add(c.cfg.GCInterval)
 		}

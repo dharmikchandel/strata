@@ -74,8 +74,16 @@ export interface Example {
   limit: number;
 }
 
+// A tag key and the values stored for it (capped: more exist than are listed).
+export interface TagValues {
+  key: string;
+  values: string[];
+  capped: boolean;
+}
+
 export interface Overview {
   corpus: Corpus | null; // null when nothing is stored yet
+  tags?: TagValues[];
   examples: Example[] | null;
   credit?: string;
   about_url?: string;
@@ -112,6 +120,51 @@ export async function fetchOverview(): Promise<Overview | null> {
     const res = await fetch('/api/overview');
     if (!res.ok) return null;
     return (await res.json()) as Overview;
+  } catch {
+    return null;
+  }
+}
+
+// /api/system (cmd/stratactl/system.go): the segments as they are now, what
+// the server has done since the last call, and its vital signs.
+export interface SystemSegment {
+  id: string;
+  size: number;
+  lines: number;
+  first: string; // first and last log time, "2006-01-02 15:04" UTC
+  last: string;
+  generation: number; // 0: written by ingest; n: n merges deep
+  created: string; // when it was written, "2006-01-02 15:04:05.000" UTC
+}
+
+export interface SystemEvent {
+  seq: number;
+  at: string; // "2006-01-02 15:04:05.000" UTC
+  kind: 'sealed' | 'merged' | 'cleaned';
+  segment?: string; // sealed: the new segment; merged: the merged one
+  inputs?: string[]; // merged: what it replaced
+  lines?: number;
+  bytes?: number;
+  bytes_in?: number;
+  files?: number; // cleaned
+}
+
+export interface System {
+  segments: SystemSegment[]; // oldest first; at most the newest 2,000
+  segments_total: number;
+  events: SystemEvent[]; // after the seq asked for, oldest first
+  started: string; // when the server (and its event log) started
+  lines_per_sec: number;
+  buffer: { bytes: number; seal_at: number; seal_after_ms: number; limit: number };
+  compaction: boolean;
+}
+
+// Null when the system view can't be had (server down): the page says so.
+export async function fetchSystem(after: number): Promise<System | null> {
+  try {
+    const res = await fetch('/api/system?after=' + after);
+    if (!res.ok) return null;
+    return (await res.json()) as System;
   } catch {
     return null;
   }

@@ -1,0 +1,36 @@
+/* The bucket: blocks wrapping in rows, oldest first. Every block is the same
+   height, so its width alone carries its size. */
+.bucket {
+  position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px;
+  min-height: 2.5rem; padding: 1px;
+}
+.bucket:focus-visible { outline-offset: 4px; border-radius: var(--radius-sm); }
+
+/* The tone says how many merges a segment's lines have been through: hollow
+   when written by ingest, then deeper. Neutral throughout. */
+.block {
+  flex: none; height: 2.5rem; border-radius: 3px; cursor: default;
+  background: var(--bg-raised); box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.block[data-gen='1'] { background: color-mix(in srgb, var(--fg) 26%, var(--bg-panel)); box-shadow: none; }
+.block[data-gen='2'] { background: color-mix(in srgb, var(--fg) 52%, var(--bg-panel)); box-shadow: none; }
+.block[data-active] { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+/* A new segment (sealed, or the result of a merge) grows into place; the
+   ones a merge replaced fade and sink, then go. Transform and opacity only. */
+@keyframes enter { from { opacity: 0; transform: scaleY(0.25); } }
+@keyframes leave { to { opacity: 0; transform: scaleY(0.25); } }
+.block[data-fresh] { transform-origin: bottom; animation: enter 500ms var(--ease-out) both; }
+.block[data-leaving] { transform-origin: bottom; animation: leave 900ms var(--ease-out) forwards; box-shadow: inset 0 0 0 1px var(--line-strong); background: transparent; }
+@media (prefers-reduced-motion: reduce) { .block[data-fresh], .block[data-leaving] { animation: none; } }
+
+.tip {
+  position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 8px));
+  display: grid; gap: 0.2rem; width: max-content; max-width: min(22rem, 80vw); padding: 0.55rem 0.7rem;
+  pointer-events: none; background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  font-size: var(--text-xs); color: var(--fg-muted);
+}
+.tip b { font-weight: 600; color: var(--fg); }
+.tip > .mono { color: var(--fg); font-size: var(--text-2xs); }
+
+@media (max-width: 40rem) { .block { height: 2rem; } .bucket { gap: 2px; } }

@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	stratav1 "github.com/dharmikchandel/strata/gen/strata/v1"
+	"github.com/dharmikchandel/strata/internal/activity"
+	"github.com/dharmikchandel/strata/internal/manifest"
 	"github.com/dharmikchandel/strata/internal/segment"
 )
 
@@ -25,6 +27,8 @@ const (
 	DefaultMaxOutcomes = 1000
 	// DefaultTimeout applies when the client sets no deadline of its own.
 	DefaultTimeout = 30 * time.Second
+	// MaxSystemSegments bounds the segment list in a System response.
+	MaxSystemSegments = 2000
 )
 
 // ServiceConfig controls the gRPC query service. Zero values use defaults.
@@ -40,7 +44,10 @@ type ServiceConfig struct {
 	// than this the list is omitted (and flagged), keeping responses small; the
 	// summary counts are always complete.
 	MaxOutcomes int
-	Logger      *slog.Logger
+	// Monitor, if set, feeds System with events, the ingest rate and the
+	// buffer's load; without it System lists segments only.
+	Monitor *activity.Monitor
+	Logger  *slog.Logger
 }
 
 // Service implements stratav1.QueryServiceServer on top of an Engine.
@@ -149,13 +156,79 @@ func (s *Service) Stats(ctx context.Context, _ *stratav1.StatsRequest) (*stratav
 		s.cfg.Logger.Error("stats failed", "err", err)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
-	return &stratav1.StatsResponse{
+	tags, err := s.engine.manifest.Tags(ctx)
+	if err != nil {
+		s.cfg.Logger.Error("stats failed", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	resp := &stratav1.StatsResponse{
 		Segments:    uint32(st.Segments),
 		Entries:     uint64(st.Entries),
 		StoredBytes: uint64(st.StoredBytes),
 		MinUnixNano: st.MinTS,
 		MaxUnixNano: st.MaxTS,
-	}, nil
+	}
+	for _, k := range tags {
+		resp.Tags = append(resp.Tags, &stratav1.TagKey{Key: k.Key, Values: k.Values, Capped: k.Capped})
+	}
+	return resp, nil
+}
+
+// System implements QueryService.System. Like Stats it reads the manifest and
+// memory only, so it is cheap and not counted against the search limit.
+func (s *Service) System(ctx context.Context, req *stratav1.SystemRequest) (*stratav1.SystemResponse, error) {
+	segs, err := s.engine.manifest.List(ctx, manifest.StatusActive)
+	if err != nil {
+		s.cfg.Logger.Error("system failed", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	resp := &stratav1.SystemResponse{SegmentsTotal: uint32(len(segs))}
+	if len(segs) > MaxSystemSegments {
+		segs = segs[len(segs)-MaxSystemSegments:] // the newest
+	}
+	for _, sg := range segs {
+		resp.Segments = append(resp.Segments, &stratav1.SegmentInfo{
+			SegmentId: sg.ID, SizeBytes: uint64(sg.Size), Lines: uint64(sg.Count),
+			MinUnixNano: sg.MinTS, MaxUnixNano: sg.MaxTS, Generation: uint32(sg.Generation),
+			CreatedUnixNano: sg.CreatedAt.UnixNano(),
+		})
+	}
+	mon := s.cfg.Monitor
+	if mon == nil {
+		return resp, nil
+	}
+	resp.Compaction = mon.Compaction
+	resp.BufferSealAfterMillis = mon.SealAfter.Milliseconds()
+	if mon.Log != nil {
+		resp.StartedUnixNano = mon.Log.Started().UnixNano()
+		for _, e := range mon.Log.Since(req.GetEventsAfter()) {
+			resp.Events = append(resp.Events, &stratav1.SystemEvent{
+				Seq: e.Seq, AtUnixNano: e.At.UnixNano(), Kind: eventKind(e.Kind),
+				SegmentId: e.Segment, Inputs: e.Inputs, Lines: uint64(e.Lines),
+				Bytes: uint64(e.Bytes), BytesIn: uint64(e.BytesIn), Files: uint32(e.Files),
+			})
+		}
+	}
+	if mon.Rate != nil {
+		resp.IngestLinesPerSecond = mon.Rate.PerSecond()
+	}
+	if mon.Load != nil {
+		pending, sealAt, refuseAt := mon.Load()
+		resp.BufferBytes, resp.BufferSealBytes, resp.BufferLimitBytes = uint64(pending), uint64(sealAt), uint64(refuseAt)
+	}
+	return resp, nil
+}
+
+func eventKind(k activity.Kind) stratav1.SystemEvent_Kind {
+	switch k {
+	case activity.Sealed:
+		return stratav1.SystemEvent_KIND_SEALED
+	case activity.Merged:
+		return stratav1.SystemEvent_KIND_MERGED
+	case activity.Cleaned:
+		return stratav1.SystemEvent_KIND_CLEANED
+	}
+	return stratav1.SystemEvent_KIND_UNSPECIFIED
 }
 
 func outcomeKind(o Outcome) stratav1.SegmentOutcome_Kind {

@@ -194,6 +194,47 @@ func TestMergesSmallSegmentsIntoOne(t *testing.T) {
 		t.Fatalf("second pass: %v %v", rep, err)
 	}
 	_ = inputs
+
+	// The merge is one generation on from its inputs, and records the tag
+	// values of its lines (the inputs were stored without any).
+	if g := active[0].Generation; g != 1 {
+		t.Fatalf("merged generation %d, want 1", g)
+	}
+	if tags, err := e.m.Tags(ctx); err != nil || fmt.Sprint(tags) != "[{n [0 1 2] false}]" {
+		t.Fatalf("tags after merge: %v %v", tags, err)
+	}
+}
+
+// A merge of merges is a generation further on than its newest input.
+func TestGenerationCountsMerges(t *testing.T) {
+	e := newEnv(t)
+	for i := 0; i < 4; i++ {
+		e.addSegment(int64(i*100), 10)
+	}
+	c := e.compactor(func(cfg *Config) { cfg.MinSegments, cfg.MaxSegments = 2, 2 })
+	for i := 0; i < 3; i++ { // oldest first: (a b), then (ab c), then (abc d)
+		gen := map[string]int{}
+		for _, s := range e.active() {
+			gen[s.ID] = s.Generation
+		}
+		rep, err := c.CompactOnce(ctx)
+		if err != nil || rep == nil {
+			t.Fatalf("merge %d: %v %v", i, rep, err)
+		}
+		want := 0
+		for _, id := range rep.InputIDs {
+			want = max(want, gen[id]+1)
+		}
+		for _, s := range e.active() {
+			if s.ID == rep.OutputID && s.Generation != want {
+				t.Fatalf("merge %d: generation %d, want %d", i, s.Generation, want)
+			}
+		}
+	}
+	if a := e.active(); len(a) != 1 || a[0].Generation != 3 {
+		t.Fatalf("after merging merges: %+v", a)
+	}
+	e.assertExactlyOnce()
 }
 
 func TestBatchSelection(t *testing.T) {

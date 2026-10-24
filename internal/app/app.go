@@ -16,12 +16,17 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	stratav1 "github.com/dharmikchandel/strata/gen/strata/v1"
+	"github.com/dharmikchandel/strata/internal/activity"
 	"github.com/dharmikchandel/strata/internal/compact"
 	"github.com/dharmikchandel/strata/internal/ingest"
 	"github.com/dharmikchandel/strata/internal/manifest"
 	"github.com/dharmikchandel/strata/internal/query"
 	"github.com/dharmikchandel/strata/internal/storage"
 )
+
+// eventLogSize is how many recent events the server remembers for its system
+// view (in memory only).
+const eventLogSize = 500
 
 // App is a running Strata server.
 type App struct {
@@ -37,6 +42,7 @@ type App struct {
 
 	cancelCompactor context.CancelFunc
 	compactorDone   chan struct{}
+	cancelRate      context.CancelFunc
 	serveDone       chan error
 
 	shutdownOnce sync.Once
@@ -95,6 +101,10 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 		return nil, fmt.Errorf("startup: %w", err)
 	}
 
+	// What the server does is also told to a short in-memory log, which the
+	// System call shows.
+	events := activity.NewLog(eventLogSize)
+
 	// 3. Ingest buffer. A sealed segment is recorded in the manifest as part
 	// of sealing: if recording fails the buffer deletes the file and keeps the
 	// entries (see ingest.Config.OnSeal).
@@ -103,10 +113,14 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 		MaxBytes: cfg.BufferBytes,
 		MaxAge:   cfg.BufferAge,
 		OnSeal: func(ss ingest.SealedSegment) error {
-			return m.AddSegment(context.Background(), manifest.Segment{
+			err := m.AddSegment(context.Background(), manifest.Segment{
 				ID: ss.ID, Key: ss.Key, MinTS: ss.MinTS, MaxTS: ss.MaxTS,
-				Count: ss.Count, Size: ss.Size, Bloom: ss.Bloom,
+				Count: ss.Count, Size: ss.Size, Bloom: ss.Bloom, Tags: ss.Tags,
 			})
+			if err == nil {
+				events.Add(activity.Event{Kind: activity.Sealed, Segment: ss.ID, Lines: int64(ss.Count), Bytes: ss.Size})
+			}
+			return err
 		},
 		OnError: func(err error) { a.log.Error("background seal failed", "err", err) },
 	})
@@ -126,7 +140,12 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 	// while draining at shutdown.
 	a.health = health.NewServer()
 	healthpb.RegisterHealthServer(a.grpc, a.health)
-	stratav1.RegisterQueryServiceServer(a.grpc, query.NewService(query.New(m, a.store, 0), query.ServiceConfig{Logger: a.log}))
+	rate := activity.NewRate(buf.AcceptedTotal, 10*time.Second)
+	rctx, cancelRate := context.WithCancel(context.Background())
+	a.cancelRate = cancelRate
+	go rate.Run(rctx, time.Second)
+	monitor := &activity.Monitor{Log: events, Rate: rate, Load: buf.Load, SealAfter: buf.SealAfter(), Compaction: cfg.CompactEnabled}
+	stratav1.RegisterQueryServiceServer(a.grpc, query.NewService(query.New(m, a.store, 0), query.ServiceConfig{Logger: a.log, Monitor: monitor}))
 	a.serveDone = make(chan error, 1)
 	go func() { a.serveDone <- a.grpc.Serve(a.lis) }()
 	a.health.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
@@ -143,6 +162,13 @@ func Start(ctx context.Context, cfg Config) (*App, error) {
 			Interval:    cfg.CompactInterval,
 			OrphanGrace: cfg.OrphanGrace,
 			Logger:      a.log,
+			OnMerge: func(r compact.Report) {
+				events.Add(activity.Event{Kind: activity.Merged, Segment: r.OutputID, Inputs: r.InputIDs,
+					Lines: int64(r.Entries), Bytes: r.BytesOut, BytesIn: r.BytesIn})
+			},
+			OnGC: func(r compact.GCReport) {
+				events.Add(activity.Event{Kind: activity.Cleaned, Files: r.ReplacedFilesDeleted + r.OrphansDeleted})
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("startup: %w", err)
@@ -214,6 +240,9 @@ func (a *App) shutdown(ctx context.Context) error {
 		errs = append(errs, fmt.Errorf("final flush failed, %d buffered entries lost: %w", lost, err))
 	}
 
+	if a.cancelRate != nil {
+		a.cancelRate()
+	}
 	if a.cancelCompactor != nil {
 		a.cancelCompactor()
 		select {
@@ -231,6 +260,9 @@ func (a *App) shutdown(ctx context.Context) error {
 
 // release undoes a partly finished Start.
 func (a *App) release() {
+	if a.cancelRate != nil {
+		a.cancelRate()
+	}
 	if a.cancelCompactor != nil {
 		a.cancelCompactor()
 		<-a.compactorDone

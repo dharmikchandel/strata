@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	stratav1 "github.com/dharmikchandel/strata/gen/strata/v1"
+	"github.com/dharmikchandel/strata/internal/activity"
 	"github.com/dharmikchandel/strata/internal/storage"
 )
 
@@ -276,5 +277,35 @@ func TestSearchRPCOmitsAnOversizedSegmentList(t *testing.T) {
 	client = startQueryServer(t, e.eng, ServiceConfig{MaxOutcomes: 5})
 	if resp, _ := client.Search(ctx, &stratav1.SearchRequest{Text: "common"}); resp.SegmentsTruncated || len(resp.Segments) != 5 {
 		t.Fatalf("at the cap: truncated=%v, %d listed", resp.SegmentsTruncated, len(resp.Segments))
+	}
+}
+
+// Stats lists the tag catalogue; System lists segments with their generation
+// and whatever the monitor knows.
+func TestStatsTagsAndSystemRPC(t *testing.T) {
+	e := newEnv(t)
+	rows := e.timeSegments(3) // timeSegments tags half the lines env=prod
+	log := activity.NewLog(10)
+	log.Add(activity.Event{Kind: activity.Sealed, Segment: rows[0].ID, Lines: 100, Bytes: rows[0].Size})
+	log.Add(activity.Event{Kind: activity.Merged, Segment: "m", Inputs: []string{"a", "b"}, Lines: 7})
+	mon := &activity.Monitor{Log: log, Load: func() (int, int, int) { return 10, 100, 400 }, Compaction: true}
+	client := startQueryServer(t, e.eng, ServiceConfig{Monitor: mon})
+
+	st, err := client.Stats(ctx, &stratav1.StatsRequest{})
+	if err != nil || len(st.Tags) != 1 || st.Tags[0].Key != "env" || st.Tags[0].Values[0] != "prod" {
+		t.Fatalf("stats tags: %+v %v", st.GetTags(), err)
+	}
+	sys, err := client.System(ctx, &stratav1.SystemRequest{EventsAfter: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sys.SegmentsTotal != 3 || len(sys.Segments) != 3 || sys.Segments[0].SegmentId != rows[0].ID || sys.Segments[0].Lines != 100 {
+		t.Fatalf("segments: %+v", sys.Segments)
+	}
+	if len(sys.Events) != 1 || sys.Events[0].Kind != stratav1.SystemEvent_KIND_MERGED || len(sys.Events[0].Inputs) != 2 {
+		t.Fatalf("events after 1: %+v", sys.Events)
+	}
+	if sys.BufferBytes != 10 || sys.BufferSealBytes != 100 || sys.BufferLimitBytes != 400 || !sys.Compaction {
+		t.Fatalf("load: %+v", sys)
 	}
 }

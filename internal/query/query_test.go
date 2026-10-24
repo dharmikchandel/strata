@@ -80,6 +80,7 @@ func (e *env) addSegment(entries []segment.Entry) manifest.Segment {
 	row := manifest.Segment{
 		ID: fmt.Sprintf("seg%03d", e.seq), Key: fmt.Sprintf("segments/seg%03d.strata", e.seq),
 		MinTS: seg.MinTimestamp(), MaxTS: seg.MaxTimestamp(), Count: seg.Len(), Size: int64(len(data)), Bloom: bl,
+		Tags: segment.DistinctTags(entries, 1024), // as ingest records them
 	}
 	if err := e.store.Put(ctx, row.Key, bytes.NewReader(data)); err != nil {
 		e.t.Fatal(err)

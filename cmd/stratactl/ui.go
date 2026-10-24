@@ -77,6 +77,7 @@ func runUI(args []string) error {
 type uiClient interface {
 	Search(ctx context.Context, in *stratav1.SearchRequest, opts ...grpc.CallOption) (*stratav1.SearchResponse, error)
 	Stats(ctx context.Context, in *stratav1.StatsRequest, opts ...grpc.CallOption) (*stratav1.StatsResponse, error)
+	System(ctx context.Context, in *stratav1.SystemRequest, opts ...grpc.CallOption) (*stratav1.SystemResponse, error)
 }
 
 type uiHandler struct {
@@ -100,6 +101,7 @@ func newUIHandler(client uiClient, opts uiOptions) (*uiHandler, error) {
 	h.mux.HandleFunc("GET /api/search", h.search)
 	h.mux.HandleFunc("GET /api/overview", h.overview)
 	h.mux.HandleFunc("GET /api/live", h.liveTail)
+	h.mux.HandleFunc("GET /api/system", h.system)
 	return h, nil
 }
 

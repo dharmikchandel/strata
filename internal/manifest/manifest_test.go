@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/dharmikchandel/strata/internal/segment"
 )
 
 var ctx = context.Background()
@@ -365,6 +367,63 @@ func TestUpgradeFromSchemaV1(t *testing.T) {
 	got, err := m.Overlapping(ctx, 0, 10)
 	if err != nil || len(got) != 1 || got[0].ID != "old" || got[0].Bloom != nil {
 		t.Fatalf("after upgrade: %v %v", got, err)
+	} // A row from before generations existed counts as never merged.
+	if l := mustList(t, m, StatusActive); len(l) != 1 || l[0].Generation != 0 {
+		t.Fatalf("generation after upgrade: %+v", l)
+	}
+}
+
+// The tag catalogue: written with the segment, in the same transaction, and
+// bounded per key.
+func TestTagCatalogue(t *testing.T) {
+	m, _ := openTemp(t)
+	a := seg("a", 1, 2, 1)
+	a.Tags = []segment.Tag{{Key: "level", Value: "INFO"}, {Key: "level", Value: "FATAL"}, {Key: "component", Value: "KERNEL"}}
+	a.Generation = 2
+	if err := m.AddSegment(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	b := seg("b", 3, 4, 1)
+	b.Tags = []segment.Tag{{Key: "level", Value: "INFO"}} // already known: no change
+	if err := m.AddSegment(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	got, err := m.Tags(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(got) != "[{component [KERNEL] false} {level [FATAL INFO] false}]" {
+		t.Fatalf("tags: %v", got)
+	}
+	if l := mustList(t, m, StatusActive); l[0].Generation != 2 || l[1].Generation != 0 {
+		t.Fatalf("generations: %+v", l)
+	}
+
+	// A failed swap records no tags: the catalogue never names a value that
+	// no committed segment holds.
+	c := seg("c", 5, 6, 1)
+	c.Tags = []segment.Tag{{Key: "ghost", Value: "x"}}
+	if err := m.Replace(ctx, []Segment{c}, []string{"missing"}); !errors.Is(err, ErrNotActive) {
+		t.Fatalf("err = %v", err)
+	}
+	if got, _ := m.Tags(ctx); len(got) != 2 {
+		t.Fatalf("a rolled-back swap left tags: %v", got)
+	}
+
+	// Past MaxTagValues for one key, values are dropped and the key is capped.
+	var many []segment.Tag
+	for i := 0; i < MaxTagValues+10; i++ {
+		many = append(many, segment.Tag{Key: "request", Value: fmt.Sprintf("r%04d", i)})
+	}
+	d := seg("d", 7, 8, 1)
+	d.Tags = many
+	if err := m.AddSegment(ctx, d); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = m.Tags(ctx)
+	req := got[2]
+	if req.Key != "request" || len(req.Values) != MaxTagValues || !req.Capped || got[1].Capped {
+		t.Fatalf("capping: key %s, %d values, capped %v (level capped %v)", req.Key, len(req.Values), req.Capped, got[1].Capped)
 	}
 }
 

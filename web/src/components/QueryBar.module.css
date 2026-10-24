@@ -1,3 +1,6 @@
+/* The bar and the suggestion list that hangs under it. */
+.anchor { position: relative; }
+
 /* The search bar: one bordered instrument with the query box, the time
    control and the action in a single 56px row on wide screens. */
 .form { margin: 0; }
@@ -34,8 +37,24 @@
   background: var(--invert-bg); color: var(--invert-fg);
   transition: background-color var(--dur-fast);
 }
-@media (hover: hover) { .submit:hover:not(:disabled) { background: var(--invert-hover); } }
+@media (hover: hover) {
+  .submit:hover:not(:disabled) { background: var(--invert-hover); }
+  .suggest li:hover { background: var(--bg-raised); }
+}
 .submit:disabled { opacity: 0.6; cursor: progress; }
+
+/* Tag suggestions: a raised panel under the box, like the time popover. */
+.suggest {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; width: min(28rem, 100%);
+  margin: 0; padding: var(--space-1); list-style: none;
+  background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--radius);
+}
+.suggest li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3);
+  padding: 0.45rem 0.6rem; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm);
+}
+.suggest li[aria-selected='true'] { background: var(--bg-raised); }
+.hint { font-size: var(--text-2xs); color: var(--fg-muted); }
 
 .help { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--fg-muted); min-height: 1.6em; }
 .help code { font-size: var(--text-2xs); color: var(--fg); }
@@ -57,4 +76,5 @@
 }
 @media (pointer: coarse) {
   .submit { min-height: 2.75rem; }
+  .suggest li { min-height: 2.75rem; align-items: center; }
 }

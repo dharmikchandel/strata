@@ -184,9 +184,12 @@ func TestSealedSegmentMetadataAndOnSeal(t *testing.T) {
 		Storage: s, MaxAge: time.Hour,
 		OnSeal: func(ss SealedSegment) error { got = append(got, ss); return nil },
 	})
-	b.Add(ctx, segment.Entry{Timestamp: 30, Message: "c"})
-	b.Add(ctx, segment.Entry{Timestamp: 10, Message: "a"})
-	b.Add(ctx, segment.Entry{Timestamp: 20, Message: "b"})
+	b.Add(ctx, segment.Entry{Timestamp: 30, Message: "c", Tags: map[string]string{"level": "INFO"}})
+	b.Add(ctx, segment.Entry{Timestamp: 10, Message: "a", Tags: map[string]string{"level": "FATAL", "app": "x"}})
+	b.Add(ctx, segment.Entry{Timestamp: 20, Message: "b", Tags: map[string]string{"level": "INFO"}})
+	if pending, sealAt, refuseAt := b.Load(); pending == 0 || sealAt != DefaultMaxBytes || refuseAt != 4*DefaultMaxBytes || b.AcceptedTotal() != 3 {
+		t.Fatalf("load %d/%d/%d, accepted %d", pending, sealAt, refuseAt, b.AcceptedTotal())
+	}
 	b.Close(ctx)
 
 	if len(got) != 1 {
@@ -195,6 +198,13 @@ func TestSealedSegmentMetadataAndOnSeal(t *testing.T) {
 	ss := got[0]
 	if ss.Count != 3 || ss.MinTS != 10 || ss.MaxTS != 30 || ss.Size <= 0 || ss.ID == "" {
 		t.Fatalf("bad metadata: %+v", ss)
+	}
+	// The distinct tag pairs, sorted, for the manifest's tag catalogue.
+	if fmt.Sprint(ss.Tags) != "[{app x} {level FATAL} {level INFO}]" {
+		t.Fatalf("tags: %v", ss.Tags)
+	}
+	if pending, _, _ := b.Load(); pending != 0 {
+		t.Fatalf("%d bytes still pending after close", pending)
 	}
 	r, err := s.Get(ctx, ss.Key)
 	if err != nil {

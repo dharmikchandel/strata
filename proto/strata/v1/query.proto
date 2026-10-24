@@ -12,8 +12,15 @@ service QueryService {
   rpc Search(SearchRequest) returns (SearchResponse);
 
   // Stats describes what is stored: how many lines, in how many segments, over
-  // what time range. It reads only the manifest, never object storage.
+  // what time range, and which tag values exist. It reads only the manifest,
+  // never object storage.
   rpc Stats(StatsRequest) returns (StatsResponse);
+
+  // System shows the machinery at work: every segment with its size and how
+  // many merges its lines have been through, what the server has done lately
+  // (sealed, merged, cleaned up), how fast lines arrive and how full the
+  // ingest buffer is. Like Stats it never reads object storage.
+  rpc System(SystemRequest) returns (SystemResponse);
 }
 
 message SearchRequest {
@@ -128,4 +135,79 @@ message StatsResponse {
   // Both are zero when nothing is stored yet.
   int64 min_unix_nano = 4;
   int64 max_unix_nano = 5;
+  // The tag values stored, by key, so a client can suggest them. Bounded:
+  // see TagKey.capped.
+  repeated TagKey tags = 6;
+}
+
+message TagKey {
+  string key = 1;
+  repeated string values = 2;
+  // More values exist for this key than the server keeps a list of.
+  bool capped = 3;
+}
+
+message SystemRequest {
+  // Only events with a higher sequence number are returned: pass the last
+  // one seen to get each event once.
+  uint64 events_after = 1;
+}
+
+message SystemResponse {
+  // Active segments, oldest first. At most the newest 2,000; segments_total
+  // counts them all.
+  repeated SegmentInfo segments = 1;
+  uint32 segments_total = 2;
+  // What the server has done since it started (it keeps the latest few
+  // hundred events in memory only), oldest first.
+  repeated SystemEvent events = 3;
+  // When the server started: no event before it is known.
+  int64 started_unix_nano = 4;
+  // Lines accepted per second, averaged over the last 10 seconds.
+  double ingest_lines_per_second = 5;
+  // The ingest buffer: bytes waiting to be sealed, the size at which a
+  // segment is sealed, and the size at which new lines are refused.
+  uint64 buffer_bytes = 6;
+  uint64 buffer_seal_bytes = 7;
+  uint64 buffer_limit_bytes = 8;
+  bool compaction = 9;
+  // A segment is also sealed when its oldest line has waited this long.
+  int64 buffer_seal_after_millis = 10;
+}
+
+message SegmentInfo {
+  string segment_id = 1;
+  uint64 size_bytes = 2;
+  uint64 lines = 3;
+  int64 min_unix_nano = 4;
+  int64 max_unix_nano = 5;
+  // 0 for a segment written by ingest; one more than its newest input for a
+  // segment written by compaction.
+  uint32 generation = 6;
+  int64 created_unix_nano = 7;
+}
+
+message SystemEvent {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // The ingest buffer wrote a new segment.
+    KIND_SEALED = 1;
+    // Compaction replaced several segments with one.
+    KIND_MERGED = 2;
+    // Garbage collection removed files nothing needed any more.
+    KIND_CLEANED = 3;
+  }
+  uint64 seq = 1;
+  int64 at_unix_nano = 2;
+  Kind kind = 3;
+  // Sealed: the new segment. Merged: the merged one.
+  string segment_id = 4;
+  // Merged: the segments it replaced.
+  repeated string inputs = 5;
+  uint64 lines = 6;
+  uint64 bytes = 7;
+  // Merged: the inputs' total size.
+  uint64 bytes_in = 8;
+  // Cleaned: files removed.
+  uint32 files = 9;
 }

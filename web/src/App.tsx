@@ -200,7 +200,7 @@ export function App() {
       const ov = await fetchOverview();
       if (!ov) return; // a missed refresh keeps what is on screen
       const wasEmpty = !overviewRef.current?.corpus;
-      setOverview((prev) => (prev ? { ...prev, corpus: ov.corpus } : ov));
+      setOverview((prev) => (prev ? { ...prev, corpus: ov.corpus, tags: ov.tags } : ov));
       if (wasEmpty && ov.corpus && !lastRun.current) runExample(0, ov, false);
     }, 10_000);
     return () => clearInterval(id);
@@ -290,6 +290,7 @@ export function App() {
           ref={inputRef}
           query={query}
           corpus={corpus}
+          tags={overview?.tags ?? []}
           busy={busy}
           invalid={invalid}
           onText={(q) => {

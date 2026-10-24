@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	QueryService_Search_FullMethodName = "/strata.v1.QueryService/Search"
 	QueryService_Stats_FullMethodName  = "/strata.v1.QueryService/Stats"
+	QueryService_System_FullMethodName = "/strata.v1.QueryService/System"
 )
 
 // QueryServiceClient is the client API for QueryService service.
@@ -34,8 +35,14 @@ type QueryServiceClient interface {
 	// work the search did.
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// Stats describes what is stored: how many lines, in how many segments, over
-	// what time range. It reads only the manifest, never object storage.
+	// what time range, and which tag values exist. It reads only the manifest,
+	// never object storage.
 	Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error)
+	// System shows the machinery at work: every segment with its size and how
+	// many merges its lines have been through, what the server has done lately
+	// (sealed, merged, cleaned up), how fast lines arrive and how full the
+	// ingest buffer is. Like Stats it never reads object storage.
+	System(ctx context.Context, in *SystemRequest, opts ...grpc.CallOption) (*SystemResponse, error)
 }
 
 type queryServiceClient struct {
@@ -66,6 +73,16 @@ func (c *queryServiceClient) Stats(ctx context.Context, in *StatsRequest, opts .
 	return out, nil
 }
 
+func (c *queryServiceClient) System(ctx context.Context, in *SystemRequest, opts ...grpc.CallOption) (*SystemResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SystemResponse)
+	err := c.cc.Invoke(ctx, QueryService_System_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServiceServer is the server API for QueryService service.
 // All implementations must embed UnimplementedQueryServiceServer
 // for forward compatibility.
@@ -77,8 +94,14 @@ type QueryServiceServer interface {
 	// work the search did.
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// Stats describes what is stored: how many lines, in how many segments, over
-	// what time range. It reads only the manifest, never object storage.
+	// what time range, and which tag values exist. It reads only the manifest,
+	// never object storage.
 	Stats(context.Context, *StatsRequest) (*StatsResponse, error)
+	// System shows the machinery at work: every segment with its size and how
+	// many merges its lines have been through, what the server has done lately
+	// (sealed, merged, cleaned up), how fast lines arrive and how full the
+	// ingest buffer is. Like Stats it never reads object storage.
+	System(context.Context, *SystemRequest) (*SystemResponse, error)
 	mustEmbedUnimplementedQueryServiceServer()
 }
 
@@ -94,6 +117,9 @@ func (UnimplementedQueryServiceServer) Search(context.Context, *SearchRequest) (
 }
 func (UnimplementedQueryServiceServer) Stats(context.Context, *StatsRequest) (*StatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Stats not implemented")
+}
+func (UnimplementedQueryServiceServer) System(context.Context, *SystemRequest) (*SystemResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method System not implemented")
 }
 func (UnimplementedQueryServiceServer) mustEmbedUnimplementedQueryServiceServer() {}
 func (UnimplementedQueryServiceServer) testEmbeddedByValue()                      {}
@@ -152,6 +178,24 @@ func _QueryService_Stats_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QueryService_System_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SystemRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServiceServer).System(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: QueryService_System_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServiceServer).System(ctx, req.(*SystemRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // QueryService_ServiceDesc is the grpc.ServiceDesc for QueryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -166,6 +210,10 @@ var QueryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stats",
 			Handler:    _QueryService_Stats_Handler,
+		},
+		{
+			MethodName: "System",
+			Handler:    _QueryService_System_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

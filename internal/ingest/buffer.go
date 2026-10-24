@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dharmikchandel/strata/internal/segment"
@@ -51,7 +52,14 @@ type SealedSegment struct {
 	Size  int64 // bytes of the segment file
 	// Bloom is the segment's serialized bloom filter, for the manifest.
 	Bloom []byte
+	// Tags are the distinct tag pairs in the segment (at most
+	// maxSegmentTags), for the manifest's tag catalogue.
+	Tags []segment.Tag
 }
+
+// maxSegmentTags bounds the tag pairs recorded per segment: the catalogue is
+// a convenience, and a tag with a new value on every line would bloat it.
+const maxSegmentTags = 1024
 
 // Config controls a Buffer.
 type Config struct {
@@ -96,6 +104,8 @@ type Buffer struct {
 	mu      sync.Mutex
 	pending batch
 	closed  bool
+
+	accepted atomic.Int64 // entries ever accepted, for an ingest rate
 
 	stop chan struct{} // closed by Close to stop the timer goroutine
 	done chan struct{} // closed when the timer goroutine has exited
@@ -178,6 +188,7 @@ func (b *Buffer) AddBatch(ctx context.Context, entries []segment.Entry) error {
 	}
 	b.pending.entries = append(b.pending.entries, owned...)
 	b.pending.bytes += size
+	b.accepted.Add(int64(len(owned)))
 	var full *batch
 	if b.pending.bytes >= b.cfg.MaxBytes {
 		full = b.takeLocked()
@@ -204,6 +215,23 @@ func (b *Buffer) Pending() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return len(b.pending.entries)
+}
+
+// AcceptedTotal returns how many entries the buffer has accepted since it was
+// created. Sampling it over time gives the ingest rate.
+func (b *Buffer) AcceptedTotal() int64 { return b.accepted.Load() }
+
+// SealAfter is how long the oldest buffered line may wait before its batch
+// is sealed.
+func (b *Buffer) SealAfter() time.Duration { return b.cfg.MaxAge }
+
+// Load says how full the buffer is: the bytes waiting to be sealed, the size
+// at which a segment is sealed, and the size at which new batches are refused
+// (BUFFER_FULL) because sealing keeps failing.
+func (b *Buffer) Load() (pending, sealAt, refuseAt int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.pending.bytes, b.cfg.MaxBytes, b.cfg.MaxBytes * maxPendingFactor
 }
 
 // Flush seals whatever is buffered right now. It is a no-op if empty.
@@ -279,6 +307,7 @@ func (b *Buffer) write(ctx context.Context, bt *batch) error {
 		return fmt.Errorf("ingest: read bloom of new segment: %w", err)
 	}
 	info := SealedSegment{
+		Tags:  segment.DistinctTags(bt.entries, maxSegmentTags),
 		Bloom: bloomBytes,
 		ID:    segment.NewID(),
 		Count: len(bt.entries),

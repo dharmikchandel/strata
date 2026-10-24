@@ -26,11 +26,13 @@ import (
 )
 
 type stubSearcher struct {
-	req   *stratav1.SearchRequest
-	resp  *stratav1.SearchResponse
-	err   error
-	stats *stratav1.StatsResponse
-	sErr  error
+	req    *stratav1.SearchRequest
+	resp   *stratav1.SearchResponse
+	err    error
+	stats  *stratav1.StatsResponse
+	sErr   error
+	sys    *stratav1.SystemResponse
+	sysReq *stratav1.SystemRequest
 }
 
 func (s *stubSearcher) Stats(_ context.Context, _ *stratav1.StatsRequest, _ ...grpc.CallOption) (*stratav1.StatsResponse, error) {
@@ -41,6 +43,14 @@ func (s *stubSearcher) Stats(_ context.Context, _ *stratav1.StatsRequest, _ ...g
 		return &stratav1.StatsResponse{}, nil
 	}
 	return s.stats, nil
+}
+
+func (s *stubSearcher) System(_ context.Context, in *stratav1.SystemRequest, _ ...grpc.CallOption) (*stratav1.SystemResponse, error) {
+	s.sysReq = in
+	if s.sys == nil {
+		return &stratav1.SystemResponse{}, s.err
+	}
+	return s.sys, s.err
 }
 
 func (s *stubSearcher) Search(_ context.Context, in *stratav1.SearchRequest, _ ...grpc.CallOption) (*stratav1.SearchResponse, error) {
@@ -291,9 +301,9 @@ func TestUIPassesOnAnOmittedSegmentList(t *testing.T) {
 
 func TestUIServesStaticFilesWithStrictHeaders(t *testing.T) {
 	h, _ := newUIHandler(&stubSearcher{}, uiOptions{})
-	// Both pages (the landing page at / and the app at /search/) and every
-	// file the built pages link to.
-	pages := map[string]string{"/": readFile(t, "ui/index.html"), "/search/": readFile(t, "ui/search/index.html")}
+	// Every page (the landing page at /, the app at /search/, the system view
+	// at /system/) and every file the built pages link to.
+	pages := map[string]string{"/": readFile(t, "ui/index.html"), "/search/": readFile(t, "ui/search/index.html"), "/system/": readFile(t, "ui/system/index.html")}
 	var paths []string
 	for url, page := range pages {
 		paths = append(paths, url)
@@ -360,7 +370,7 @@ func TestStylesAreScopedToTheirComponents(t *testing.T) {
 // Phone adaptation guards. These check the things that went wrong on phones and
 // that no desktop-width test would notice.
 func TestPageIsAdaptedForTouchAndSmallScreens(t *testing.T) {
-	page := readFile(t, "ui/index.html") + readFile(t, "ui/search/index.html")
+	page := readFile(t, "ui/index.html") + readFile(t, "ui/search/index.html") + readFile(t, "ui/system/index.html")
 	tsx := webSources(t, ".tsx")
 	css := webSources(t, ".css")
 	all := func(m map[string]string) string {

@@ -299,6 +299,46 @@ func TestCompactionRunsInTheBackground(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
+
+	// The system view saw it happen: segments sealed, then merged, each event
+	// once and in order, and every segment now listed is at least one merge on.
+	sys, err := stratav1.NewQueryServiceClient(dial(t, a)).System(ctx, &stratav1.SystemRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed := map[string]bool{}
+	merges := 0
+	for i, ev := range sys.Events {
+		if ev.Seq != uint64(i+1) {
+			t.Fatalf("event %d has seq %d", i, ev.Seq)
+		}
+		switch ev.Kind {
+		case stratav1.SystemEvent_KIND_SEALED:
+			sealed[ev.SegmentId] = true
+		case stratav1.SystemEvent_KIND_MERGED:
+			merges++
+			if len(ev.Inputs) < 2 || ev.Lines == 0 {
+				t.Fatalf("merge event: %+v", ev)
+			}
+		}
+	}
+	if len(sealed) == 0 || merges == 0 || !sys.Compaction || sys.BufferSealBytes != 2000 || sys.BufferSealAfterMillis != cfg.BufferAge.Milliseconds() || sys.StartedUnixNano == 0 {
+		t.Fatalf("system: %d sealed, %d merges, %+v", len(sealed), merges, sys)
+	}
+	if int(sys.SegmentsTotal) != active || len(sys.Segments) != active {
+		t.Fatalf("system lists %d of %d segments, manifest has %d", len(sys.Segments), sys.SegmentsTotal, active)
+	}
+	for _, sg := range sys.Segments {
+		if sg.Generation == 0 && !sealed[sg.SegmentId] {
+			t.Fatalf("segment %s is generation 0 but was never sealed", sg.SegmentId)
+		}
+	}
+	// Asking again after the last event returns nothing new.
+	again, _ := stratav1.NewQueryServiceClient(dial(t, a)).System(ctx, &stratav1.SystemRequest{EventsAfter: sys.Events[len(sys.Events)-1].Seq})
+	if len(again.Events) != 0 {
+		t.Fatalf("events repeated: %v", again.Events)
+	}
+
 	shutdown(t, a)
 	msgs, _ := readBack(t, cfg)
 	assertExactlyOnce(t, msgs, 1500)
