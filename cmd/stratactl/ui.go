@@ -25,7 +25,8 @@ import (
 var uiFiles embed.FS
 
 // uiMaxLimit caps the lines the web page can ask for, to keep pages small.
-const uiMaxLimit = 1000
+// The page offers powers of two, up to this one.
+const uiMaxLimit = 1024
 
 func runUI(args []string) error {
 	fs := flag.NewFlagSet("ui", flag.ContinueOnError)

@@ -5,6 +5,15 @@ import { Strip } from './Strip';
 import { ChevronIcon } from './icons';
 import s from './Readout.module.css';
 
+// The terms in the readout, each with a small glyph drawn the way that kind
+// of segment looks in the strip, and what it costs a search.
+const GLOSSARY: [string, string, string, string][] = [
+  ['segment', 'Segment', 'one file in object storage', 'An immutable file holding a batch of log lines, with its own index and time range. Every segment is one bar in the strip above, oldest on the left.'],
+  ['time', 'Skipped by time range', 'cost: one manifest lookup, no download', "The segment's earliest and latest lines fall outside the range you asked for, so it was ruled out from a small catalogue without being opened."],
+  ['bloom', 'Skipped by bloom filter', 'cost: an in-memory check, no download', 'A compact summary of every word in the segment said a word you searched for is definitely not in it. It can wrongly say "maybe" (costing one wasted read), never wrongly say "no".'],
+  ['scanned', 'Read', 'cost: a download of the whole segment', 'Downloaded and searched, the only step that touches storage. A tall bar in the strip; the fewer there are, the less the search read.'],
+];
+
 // What one search did: a sentence, then the segments themselves, then the
 // detail for anyone who wants it.
 export function Readout({ result, stale }: { result: SearchResult; stale: boolean }) {
@@ -70,15 +79,21 @@ export function Readout({ result, stale }: { result: SearchResult; stale: boolea
             <ChevronIcon className={s.chev} />
             What do these mean?
           </summary>
-          <dl>
-            <dt>Segment</dt>
-            <dd>One immutable file holding a batch of log lines, with its own index and time range.</dd>
-            <dt>Skipped by time range</dt>
-            <dd>The segment's earliest and latest line fall outside the range you asked for, so it was ruled out from a small catalogue without being opened.</dd>
-            <dt>Skipped by bloom filter</dt>
-            <dd>A compact summary of every word in the segment said your word is definitely not in it. It can wrongly say "maybe" (costing one wasted read), never wrongly say "no".</dd>
-            <dt>Read</dt>
-            <dd>Downloaded and searched. This is the only cost that matters. Every segment is one bar in the strip, oldest on the left; a tall bar was read, a short one was skipped.</dd>
+          <dl className={s.glossary}>
+            {GLOSSARY.map(([kind, term, cost, text]) => (
+              <div key={kind} className={s.entry}>
+                <span className={s.glyph} data-kind={kind} aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <dt>{term}</dt>
+                <dd className={`${s.cost} mono`}>{cost}</dd>
+                <dd className={s.text}>{text}</dd>
+              </div>
+            ))}
           </dl>
         </details>
       </div>

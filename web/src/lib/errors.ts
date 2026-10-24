@@ -28,7 +28,7 @@ export function explain(err: SearchError): Explained {
       if (/^(from|to): /.test(raw)) return { message: `${raw.startsWith('from') ? 'From' : 'To'} isn't a date and time. Use YYYY-MM-DD HH:MM in UTC.`, retry: false };
       if (/^text is \d+ bytes/.test(raw)) return { message: 'The search is too long. Use fewer words (at most 4,096 bytes).', retry: false };
       if (/^tag .* must look like key=value$/.test(raw)) return { message: 'A tag must look like key=value, for example level=FATAL.', retry: false };
-      if (/^limit /.test(raw)) return { message: 'The number of lines to show must be from 1 to 1,000.', retry: false };
+      if (/^limit /.test(raw)) return { message: 'The number of lines to show must be from 1 to 1,024.', retry: false };
       return { message: raw ? `The server refused this search: ${raw}` : 'The server refused this search.', retry: false };
     default:
       return { message: 'Something went wrong on the server, so the search did not finish. Try again.', retry: true };

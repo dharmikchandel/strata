@@ -24,10 +24,11 @@ export const PRESETS = [
   { label: '7d', seconds: 7 * 24 * 60 * 60 },
 ];
 
-export const LIMITS = [20, 50, 100, 500, 1000];
-export const MAX_LIMIT = 1000; // the page server's cap (uiMaxLimit in cmd/stratactl/ui.go)
+// Powers of two, like the sizes engineers think in.
+export const LIMITS = [16, 32, 64, 128, 256, 512, 1024];
+export const MAX_LIMIT = 1024; // the page server's cap (uiMaxLimit in cmd/stratactl/ui.go)
 
-export const emptyQuery: Query = { q: '', range: { kind: 'all' }, limit: 50 };
+export const emptyQuery: Query = { q: '', range: { kind: 'all' }, limit: 64 };
 
 export interface Parsed {
   words: string; // what goes to the server as text

@@ -36,16 +36,40 @@
 @media (hover: hover) { .explain summary:hover { color: var(--fg); } }
 .chev { transition: transform var(--dur-fast); flex: none; }
 .explain[open] .chev { transform: rotate(90deg); }
-.explain dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1.25rem; margin: 0; padding: 0 var(--space-5) var(--space-5) calc(var(--space-5) + 1.5rem); font-size: var(--text-sm); }
-.explain dt { font-weight: 500; }
-.explain dd { margin: 0; color: var(--fg-muted); max-width: 68ch; }
+/* The glossary: four entries in two columns, divided by hairlines. Each has a
+   glyph drawn like that kind of segment in the strip (the middle bar is the
+   subject; the others are neighbours), the term, its cost, and what it means. */
+.glossary {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0;
+  border-top: 1px solid var(--line); background: var(--bg);
+}
+.entry {
+  display: grid; grid-template-columns: 2.75rem minmax(0, 1fr); grid-template-areas: 'glyph term' 'glyph cost' 'glyph text';
+  align-content: start; column-gap: var(--space-3); padding: var(--space-4) var(--space-5);
+}
+.entry:nth-child(even) { border-left: 1px solid var(--line); }
+.entry:nth-child(n + 3) { border-top: 1px solid var(--line); }
+.entry dt { grid-area: term; font-size: var(--text-base); font-weight: 600; }
+.entry dd { margin: 0; }
+.cost { grid-area: cost; margin-top: 0.15rem; font-size: var(--text-2xs); color: var(--fg-muted); }
+.text { grid-area: text; margin-top: var(--space-2); font-size: var(--text-sm); color: var(--fg-muted); max-width: 60ch; }
+
+.glyph { grid-area: glyph; display: flex; align-items: flex-end; gap: 2px; height: 2rem; margin-top: 0.1rem; }
+.glyph i { display: block; width: 5px; height: 6px; border-radius: 1px; background: var(--line); }
+.glyph i:nth-child(3) { width: 8px; height: 8px; }
+.glyph[data-kind='segment'] i:nth-child(3) { height: 100%; background: transparent; border: 1.5px solid var(--fg-muted); }
+.glyph[data-kind='time'] i:nth-child(3) { background: var(--time); }
+.glyph[data-kind='bloom'] i:nth-child(3) { background: var(--bloom); }
+.glyph[data-kind='scanned'] i:nth-child(3) { height: 100%; background: var(--read); }
 
 @media (max-width: 40rem) {
   .panel { padding: var(--space-4) var(--space-4) 0; }
   .more { margin: var(--space-4) calc(var(--space-4) * -1) 0; }
   .explain summary { padding: 0.8rem var(--space-4); }
-  .explain dl { grid-template-columns: 1fr; padding: 0 var(--space-4) var(--space-4); }
-  .explain dt { margin-top: 0.25rem; }
+  .glossary { grid-template-columns: 1fr; }
+  .entry { padding: var(--space-4); }
+  .entry:nth-child(even) { border-left: 0; }
+  .entry:nth-child(n + 2) { border-top: 1px solid var(--line); }
   .headline { font-size: 1.625rem; }
 }
 @media (pointer: coarse) { .explain summary { min-height: 2.75rem; } }

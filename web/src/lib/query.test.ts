@@ -41,7 +41,7 @@ describe('URL form', () => {
       q({ q: 'parity error level=FATAL' }),
       q({ q: 'error', range: { kind: 'last', seconds: 3600 }, limit: 20 }),
       q({ range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' } }),
-      q({ range: { kind: 'between', from: '', to: '2005-06-20 14:00' }, limit: 1000 }),
+      q({ range: { kind: 'between', from: '', to: '2005-06-20 14:00' }, limit: 1024 }),
     ]) {
       expect(fromURL(new URLSearchParams(toURL(query).toString()))).toEqual(query);
     }
@@ -51,14 +51,14 @@ describe('URL form', () => {
 
   it('falls back to defaults for anything malformed', () => {
     expect(fromURL(new URLSearchParams('last=forever&limit=5000'))).toEqual(emptyQuery);
-    expect(fromURL(new URLSearchParams('limit=1.5')).limit).toBe(50);
+    expect(fromURL(new URLSearchParams('limit=1.5')).limit).toBe(64);
   });
 });
 
 describe('queryFromExample', () => {
   it('puts words and tags in the box and keeps "last" relative', () => {
     expect(queryFromExample({ title: '', note: '', text: '', tags: { level: 'FATAL' }, from: '', to: '', last_seconds: 3600, limit: 20 })).toEqual({ q: 'level=FATAL', range: { kind: 'last', seconds: 3600 }, limit: 20 });
-    expect(queryFromExample({ title: '', note: '', text: 'error', tags: null, from: '2005-06-20T13:00', to: '2005-06-20T14:00', limit: 0 })).toEqual({ q: 'error', range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' }, limit: 50 });
+    expect(queryFromExample({ title: '', note: '', text: 'error', tags: null, from: '2005-06-20T13:00', to: '2005-06-20T14:00', limit: 0 })).toEqual({ q: 'error', range: { kind: 'between', from: '2005-06-20 13:00', to: '2005-06-20 14:00' }, limit: 64 });
   });
 
   it('labels ranges briefly', () => {

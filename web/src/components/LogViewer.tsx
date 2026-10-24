@@ -26,7 +26,7 @@ const severity = (v: string) => (ERROR_LEVELS.has(v.toUpperCase()) ? 'error' : W
 
 // The matching lines, one dense row each. Every row stays in the page, so the
 // browser's find (Ctrl+F) and a screen reader's table navigation see all of
-// them; what keeps 1,000 rows cheap is `content-visibility: auto` in the
+// them; what keeps 1,024 rows cheap is `content-visibility: auto` in the
 // stylesheet, which lets the browser skip laying out and painting rows that
 // are off screen. Log text is untrusted: React renders it as text.
 export function LogViewer({ hits, wrap, terms, tags, onTag }: Props) {

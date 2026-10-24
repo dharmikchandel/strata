@@ -125,7 +125,7 @@ func TestUIDefaultsAndValidation(t *testing.T) {
 		t.Fatalf("defaults: status %d limit %d", rec.Code, stub.req.Limit)
 	}
 	for _, bad := range []string{
-		"/api/search?limit=0", "/api/search?limit=1001", "/api/search?limit=abc",
+		"/api/search?limit=0", "/api/search?limit=1025", "/api/search?limit=abc",
 		"/api/search?tag=novalue", "/api/search?tag=%3Dx",
 		"/api/search?from=yesterday", "/api/search?to=2005-13-45",
 	} {
@@ -231,7 +231,7 @@ func TestIngestCommandThenSearchThroughTheUI(t *testing.T) {
 	deadline := time.Now().Add(5 * time.Second)
 	var out searchJSON
 	for {
-		rec := get(t, h, "/api/search?text=parity&tag=level%3DINFO&limit=1000")
+		rec := get(t, h, "/api/search?text=parity&tag=level%3DINFO&limit=1024")
 		if rec.Code != 200 {
 			t.Fatalf("status %d: %s", rec.Code, rec.Body)
 		}
